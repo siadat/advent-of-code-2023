@@ -8,6 +8,7 @@ pub fn main() !void {
 
     // add some comment
     while (true) {
+        // this function reads stdin one single byte at a type
         stdin.streamUntilDelimiter(stdout, '\n', null) catch |err| switch (err) {
             error.EndOfStream => return,
             else => return err,
