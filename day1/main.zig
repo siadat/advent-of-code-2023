@@ -7,6 +7,11 @@ pub fn main() !void {
     defer buf.deinit();
 
     // add some comment
-    const count = try stdin.readAllArrayList(&buf, 22110);
-    try stdout.print("read {} bytes, they are {any}", .{ count, buf.items });
+    while (true) {
+        stdin.streamUntilDelimiter(stdout, '\n', null) catch |err| switch (err) {
+            error.EndOfStream => return,
+            else => return err,
+        };
+        try stdout.print("\n", .{});
+    }
 }
