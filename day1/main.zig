@@ -21,7 +21,7 @@ fn maxStringLength(strings: []const []const u8) u8 {
     return max_len;
 }
 
-// The gloa of this implementation was to:
+// The goal of this implementation was to:
 // 1. Learn Zig
 // 2. Read the input byte by byte not avoid multiple scans. This leads to more
 //    checks for each byte (ie nine checks for each number), however, it's
