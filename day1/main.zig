@@ -28,17 +28,19 @@ fn maxStringLength(strings: []const []const u8) u8 {
 //    memory efficient.
 const Calculator = struct {
     const possible_numbers = [_][]const u8{
-        "one",
-        "two",
-        "three",
-        "four",
-        "five",
-        "six",
-        "seven",
-        "eight",
-        "nine",
+        //          12345
+        //          -----
+        "one", //   one
+        "two", //   two
+        "three", // three
+        "four", //  four
+        "five", //  five
+        "six", //   six
+        "seven", // seven
+        "eight", // eight
+        "nine", //  nine
     };
-    const maxNumberLen = maxStringLength(&possible_numbers); // 5
+    const maxNumWordLen = maxStringLength(&possible_numbers); // 5
 
     question_part: u8 = 2,
     bytes_read: u64 = 0,
@@ -46,7 +48,7 @@ const Calculator = struct {
     line_first_num: u64 = 0,
     line_last_num: u64 = 0,
 
-    last_n_bytes: [maxNumberLen]u8 = undefined,
+    last_n_bytes: [maxNumWordLen]u8 = undefined,
     last_five_bytes_end_idx: u8 = 0,
 
     // For debugging only:
@@ -62,8 +64,8 @@ const Calculator = struct {
         self.last_n_bytes = undefined;
     }
 
-    fn getLastFiveBytes(self: *Calculator) [maxNumberLen]u8 {
-        var last_n_bytes: [maxNumberLen]u8 = undefined;
+    fn getLastFiveBytes(self: *Calculator) [maxNumWordLen]u8 {
+        var last_n_bytes: [maxNumWordLen]u8 = undefined;
         for (0..self.last_n_bytes.len) |i| {
             const idx = (self.last_five_bytes_end_idx + i) % @as(u8, @truncate(self.last_n_bytes.len));
             last_n_bytes[i] = self.last_n_bytes[idx];
