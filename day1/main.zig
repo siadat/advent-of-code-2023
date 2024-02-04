@@ -12,12 +12,12 @@ const Calculator = struct {
         if (byte == '\n') {
             try self.handleEndOfLine();
         } else if (byte >= '1' and byte <= '9') {
-            self.handleNumber(byte);
+            self.handleNumberByte(byte);
         } else {
             // no op
         }
     }
-    pub fn handleNumber(self: *Calculator, byte: u8) void {
+    pub fn handleNumberByte(self: *Calculator, byte: u8) void {
         const value = byte - '1' + 1;
         if (self.line_first_num == 0) {
             self.line_first_num = value;
