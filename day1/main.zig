@@ -10,22 +10,24 @@ const NoopWriter = struct {
 const stdout = std.io.getStdOut().writer();
 const debug_writer = NoopWriter{};
 
+// a function for returning the maxumum length of a slice of strings:
+fn maxStringLength(strings: []const []const u8) u8 {
+    var max_len: u8 = 0;
+    for (strings) |string| {
+        if (string.len > max_len) {
+            max_len = string.len;
+        }
+    }
+    return max_len;
+}
+
 // The gloa of this implementation was to:
 // 1. Learn Zig
 // 2. Read the input byte by byte not avoid multiple scans. This leads to more
 //    checks for each byte (ie nine checks for each number), however, it's
 //    memory efficient.
 const Calculator = struct {
-    question_part: u8 = 2,
-    bytes_read: u64 = 0,
-    total_sum: u64 = 0,
-    line_first_num: u64 = 0,
-    line_last_num: u64 = 0,
-
-    last_five_bytes: [5]u8 = [_]u8{ 0, 0, 0, 0, 0 },
-    last_five_bytes_end_idx: u8 = 0,
-
-    possible_numbers: [9][]const u8 = [9][]const u8{
+    const possible_numbers = [_][]const u8{
         "one",
         "two",
         "three",
@@ -35,7 +37,17 @@ const Calculator = struct {
         "seven",
         "eight",
         "nine",
-    },
+    };
+    const maxNumberLen = maxStringLength(&possible_numbers);
+
+    question_part: u8 = 2,
+    bytes_read: u64 = 0,
+    total_sum: u64 = 0,
+    line_first_num: u64 = 0,
+    line_last_num: u64 = 0,
+
+    last_n_bytes: [maxNumberLen]u8 = [_]u8{ 0, 0, 0, 0, 0 },
+    last_five_bytes_end_idx: u8 = 0,
 
     // For debugging only:
     debug: bool = false,
@@ -43,24 +55,24 @@ const Calculator = struct {
     current_line_idx: u64 = 0,
 
     fn appendNumberToLastFive(self: *Calculator, new_number: u8) void {
-        self.last_five_bytes[self.last_five_bytes_end_idx] = new_number;
-        self.last_five_bytes_end_idx = (self.last_five_bytes_end_idx + 1) % @as(u8, @truncate(self.last_five_bytes.len));
+        self.last_n_bytes[self.last_five_bytes_end_idx] = new_number;
+        self.last_five_bytes_end_idx = (self.last_five_bytes_end_idx + 1) % @as(u8, @truncate(self.last_n_bytes.len));
     }
     fn resetLastFiveBytes(self: *Calculator) void {
-        self.last_five_bytes = [_]u8{ 0, 0, 0, 0, 0 };
+        self.last_n_bytes = [_]u8{ 0, 0, 0, 0, 0 };
     }
 
     fn getLastFiveBytes(self: *Calculator) [5]u8 {
-        var last_five_bytes: [5]u8 = undefined;
-        for (0..self.last_five_bytes.len) |i| {
-            const idx = (self.last_five_bytes_end_idx + i) % @as(u8, @truncate(self.last_five_bytes.len));
-            last_five_bytes[i] = self.last_five_bytes[idx];
+        var last_n_bytes: [5]u8 = undefined;
+        for (0..self.last_n_bytes.len) |i| {
+            const idx = (self.last_five_bytes_end_idx + i) % @as(u8, @truncate(self.last_n_bytes.len));
+            last_n_bytes[i] = self.last_n_bytes[idx];
         }
-        return last_five_bytes;
+        return last_n_bytes;
     }
     fn printLastFiveBytes(self: *Calculator) !void {
         // TODO: can I join them?
-        for (self.last_five_bytes) |byte| {
+        for (self.last_n_bytes) |byte| {
             if (byte == 0) {
                 try debug_writer.print("{}", .{byte});
             } else {
@@ -117,10 +129,10 @@ const Calculator = struct {
     }
 
     fn trySpelledNumbers(self: *Calculator) !void {
-        for (0..self.possible_numbers.len) |index| {
-            const word = self.possible_numbers[index];
+        for (0..possible_numbers.len) |index| {
+            const word = possible_numbers[index];
             const word_len = word.len;
-            if (std.mem.eql(u8, word, self.getLastFiveBytes()[self.last_five_bytes.len - word_len ..])) {
+            if (std.mem.eql(u8, word, self.getLastFiveBytes()[self.last_n_bytes.len - word_len ..])) {
                 self.foundNumber(@truncate(index + 1));
                 try debug_writer.print("WORD:{s}={}", .{ word, index + 1 });
                 break;
