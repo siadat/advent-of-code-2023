@@ -10,6 +10,11 @@ const NoopWriter = struct {
 const stdout = std.io.getStdOut().writer();
 const debug_writer = NoopWriter{};
 
+// The gloa of this implementation was to:
+// 1. Learn Zig
+// 2. Read the input byte by byte not avoid multiple scans. This leads to more
+//    checks for each byte (ie nine checks for each number), however, it's
+//    memory efficient.
 const Calculator = struct {
     question_part: u8 = 2,
     bytes_read: u64 = 0,
@@ -123,6 +128,9 @@ const Calculator = struct {
         }
     }
     fn foundNumber(self: *Calculator, number: u8) void {
+        // TODO: maybe look for the last number in the line from the end?
+        // But then we'd have to read the whole line once and come back another time.
+        // But still it might be less expensive than checking each byte with each of the nine numbers.
         if (self.line_first_num == 0) {
             self.line_first_num = number;
         }
