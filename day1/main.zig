@@ -38,7 +38,7 @@ const Calculator = struct {
         "eight",
         "nine",
     };
-    const maxNumberLen = maxStringLength(&possible_numbers);
+    const maxNumberLen = maxStringLength(&possible_numbers); // 5
 
     question_part: u8 = 2,
     bytes_read: u64 = 0,
