@@ -46,7 +46,7 @@ const Calculator = struct {
     line_first_num: u64 = 0,
     line_last_num: u64 = 0,
 
-    last_n_bytes: [maxNumberLen]u8 = [_]u8{ 0, 0, 0, 0, 0 },
+    last_n_bytes: [maxNumberLen]u8 = undefined,
     last_five_bytes_end_idx: u8 = 0,
 
     // For debugging only:
@@ -59,11 +59,11 @@ const Calculator = struct {
         self.last_five_bytes_end_idx = (self.last_five_bytes_end_idx + 1) % @as(u8, @truncate(self.last_n_bytes.len));
     }
     fn resetLastFiveBytes(self: *Calculator) void {
-        self.last_n_bytes = [_]u8{ 0, 0, 0, 0, 0 };
+        self.last_n_bytes = undefined;
     }
 
-    fn getLastFiveBytes(self: *Calculator) [5]u8 {
-        var last_n_bytes: [5]u8 = undefined;
+    fn getLastFiveBytes(self: *Calculator) [maxNumberLen]u8 {
+        var last_n_bytes: [maxNumberLen]u8 = undefined;
         for (0..self.last_n_bytes.len) |i| {
             const idx = (self.last_five_bytes_end_idx + i) % @as(u8, @truncate(self.last_n_bytes.len));
             last_n_bytes[i] = self.last_n_bytes[idx];
