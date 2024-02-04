@@ -8,6 +8,30 @@ const Calculator = struct {
     line_first_num: u64 = 0,
     line_last_num: u64 = 0,
 
+    fn appendNumberToLastFive(self: *Calculator, new_number: u8) void {
+        for (self.last_five_bytes, 0..) |_, index| {
+            self.last_five_bytes[index] = self.last_five_bytes[index + 1];
+        }
+        self.last_five_bytes[-1] = new_number;
+    }
+
+    pub fn readBytes(self: *Calculator) !void {
+        while (true) {
+            const byte = stdin.readByte() catch |err| switch (err) {
+                error.EndOfStream => {
+                    try self.handleEndOfLine();
+                    break;
+                },
+                else => {
+                    try stdout.print("Ooops", .{});
+                    return err;
+                },
+            };
+            try stdout.print("{c}", .{byte});
+            try self.handleByte(byte);
+        }
+    }
+
     pub fn handleByte(self: *Calculator, byte: u8) !void {
         if (byte == '\n') {
             try self.handleEndOfLine();
@@ -38,20 +62,7 @@ pub fn main() !void {
 
     var calculator = Calculator{};
 
-    while (true) {
-        const byte = stdin.readByte() catch |err| switch (err) {
-            error.EndOfStream => {
-                try calculator.handleEndOfLine();
-                break;
-            },
-            else => {
-                try stdout.print("Ooops", .{});
-                return err;
-            },
-        };
-        try stdout.print("{c}", .{byte});
-        try calculator.handleByte(byte);
-    }
+    try calculator.readBytes();
     try stdout.print("total_sum: {}\n", .{calculator.total_sum});
     assert(54940 == calculator.total_sum);
 }
