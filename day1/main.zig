@@ -15,7 +15,6 @@ pub fn main() !void {
     while (true) {
         const byte = stdin.readByte() catch |err| switch (err) {
             error.EndOfStream => {
-                // TODO end of line
                 try stdout.print("{}+{}\n\n", .{ line_first_num, line_last_num });
                 total_sum += 10 * line_first_num + line_last_num;
                 line_first_num = 0;
@@ -32,7 +31,6 @@ pub fn main() !void {
         // try stdout.print("{} {c}", .{ byte, byte });
 
         if (byte == '\n') {
-            // TODO end of line
             try stdout.print("{}+{}\n\n", .{ line_first_num, line_last_num });
             total_sum += 10 * line_first_num + line_last_num;
             line_first_num = 0;
