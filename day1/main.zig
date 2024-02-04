@@ -1,12 +1,11 @@
 const std = @import("std");
 const stdout = std.io.getStdOut().writer();
 const stdin = std.io.getStdIn().reader();
+const assert = std.debug.assert;
 
 pub fn main() !void {
     var buf = std.ArrayList(u8).init(std.heap.page_allocator);
     defer buf.deinit();
-
-    // add some comment
 
     var total_sum: u64 = 0;
     var line_first_num: u64 = 0;
@@ -28,7 +27,6 @@ pub fn main() !void {
         };
 
         try stdout.print("{c}:{}\n", .{ byte, byte });
-        // try stdout.print("{} {c}", .{ byte, byte });
 
         if (byte == '\n') {
             try stdout.print("{}+{}\n\n", .{ line_first_num, line_last_num });
@@ -36,7 +34,6 @@ pub fn main() !void {
             line_first_num = 0;
             line_last_num = 0;
         } else if (byte >= '1' and byte <= '9') {
-            // It's a number
             const value = byte - '1' + 1;
             if (line_first_num == 0) {
                 line_first_num = value;
@@ -45,4 +42,5 @@ pub fn main() !void {
         }
     }
     try stdout.print("total_sum: {}\n", .{total_sum});
+    assert(54940 == total_sum);
 }
