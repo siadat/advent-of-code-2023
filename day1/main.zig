@@ -1,7 +1,14 @@
 const std = @import("std");
-const stdout = std.io.getStdOut().writer();
 const stdin = std.io.getStdIn().reader();
 const assert = std.debug.assert;
+
+const NoopWriter = struct {
+    pub fn print(_: NoopWriter, comptime _: []const u8, _: anytype) !void {
+        return;
+    }
+};
+const stdout = std.io.getStdOut().writer();
+const debug_writer = NoopWriter{};
 
 const Calculator = struct {
     question_part: u8 = 2,
@@ -9,7 +16,10 @@ const Calculator = struct {
     total_sum: u64 = 0,
     line_first_num: u64 = 0,
     line_last_num: u64 = 0,
+
     last_five_bytes: [5]u8 = [_]u8{ 0, 0, 0, 0, 0 },
+    last_five_bytes_end_idx: u8 = 0,
+
     possible_numbers: [9][]const u8 = [9][]const u8{
         "one",
         "two",
@@ -28,26 +38,31 @@ const Calculator = struct {
     current_line_idx: u64 = 0,
 
     fn appendNumberToLastFive(self: *Calculator, new_number: u8) void {
-        // TODO: No need to actually shift|rotate the array, just keep track of the index
-        for (1..self.last_five_bytes.len) |index| {
-            self.last_five_bytes[index - 1] = self.last_five_bytes[index];
-        }
-        self.last_five_bytes[self.last_five_bytes.len - 1] = new_number;
+        self.last_five_bytes[self.last_five_bytes_end_idx] = new_number;
+        self.last_five_bytes_end_idx = (self.last_five_bytes_end_idx + 1) % @as(u8, @truncate(self.last_five_bytes.len));
     }
     fn resetLastFiveBytes(self: *Calculator) void {
         self.last_five_bytes = [_]u8{ 0, 0, 0, 0, 0 };
     }
 
+    fn getLastFiveBytes(self: *Calculator) [5]u8 {
+        var last_five_bytes: [5]u8 = undefined;
+        for (0..self.last_five_bytes.len) |i| {
+            const idx = (self.last_five_bytes_end_idx + i) % @as(u8, @truncate(self.last_five_bytes.len));
+            last_five_bytes[i] = self.last_five_bytes[idx];
+        }
+        return last_five_bytes;
+    }
     fn printLastFiveBytes(self: *Calculator) !void {
         // TODO: can I join them?
         for (self.last_five_bytes) |byte| {
             if (byte == 0) {
-                try stdout.print("{}", .{byte});
+                try debug_writer.print("{}", .{byte});
             } else {
-                try stdout.print("{c}", .{byte});
+                try debug_writer.print("{c}", .{byte});
             }
         }
-        try stdout.print(" ", .{});
+        try debug_writer.print(" (end idx = {}) ", .{self.last_five_bytes_end_idx});
     }
     fn readBytes(self: *Calculator) !void {
         while (true) {
@@ -57,7 +72,7 @@ const Calculator = struct {
                     break;
                 },
                 else => {
-                    try stdout.print("Ooops", .{});
+                    try debug_writer.print("Ooops", .{});
                     return err;
                 },
             };
@@ -77,7 +92,7 @@ const Calculator = struct {
             return;
         }
 
-        try stdout.print("{c}: ", .{byte});
+        try debug_writer.print("{c}: ", .{byte});
 
         if (self.question_part == 2) {
             self.appendNumberToLastFive(byte);
@@ -88,21 +103,21 @@ const Calculator = struct {
             const number = byte - '1' + 1;
             self.foundNumber(number);
             self.resetLastFiveBytes();
-            try stdout.print("DIGIT:{c}={}", .{ byte, number });
+            try debug_writer.print("DIGIT:{c}={}", .{ byte, number });
         } else if (self.question_part == 2) {
             try self.trySpelledNumbers();
         }
 
-        try stdout.print("\n", .{});
+        try debug_writer.print("\n", .{});
     }
 
     fn trySpelledNumbers(self: *Calculator) !void {
         for (0..self.possible_numbers.len) |index| {
             const word = self.possible_numbers[index];
             const word_len = word.len;
-            if (std.mem.eql(u8, word, self.last_five_bytes[self.last_five_bytes.len - word_len ..])) {
+            if (std.mem.eql(u8, word, self.getLastFiveBytes()[self.last_five_bytes.len - word_len ..])) {
                 self.foundNumber(@truncate(index + 1));
-                try stdout.print("WORD:{s}={}", .{ word, index + 1 });
+                try debug_writer.print("WORD:{s}={}", .{ word, index + 1 });
                 break;
             }
         }
@@ -114,19 +129,11 @@ const Calculator = struct {
         self.line_last_num = number;
     }
     fn handleEndOfLine(self: *Calculator) !void {
-        if (self.last_five_bytes.len > self.bytes_read) {
-            for (0..self.last_five_bytes.len - self.bytes_read + 1) |_| {
-                self.appendNumberToLastFive(0);
-            }
-            try self.printLastFiveBytes();
-            try stdout.print("\n", .{});
-        }
-
         const line_sum = 10 * self.line_first_num + self.line_last_num;
-        try stdout.print("= 10 * {} + {} = {}\n", .{ self.line_first_num, self.line_last_num, line_sum });
+        try debug_writer.print("= 10 * {} + {} = {}\n", .{ self.line_first_num, self.line_last_num, line_sum });
 
         if (self.debug) {
-            try stdout.print("Debug: full line: {s}\n\n", .{self.current_line[0..self.current_line_idx]});
+            try debug_writer.print("Debug: full line: {s}\n\n", .{self.current_line[0..self.current_line_idx]});
             self.current_line_idx = 0;
         }
 
