@@ -1,25 +1,7 @@
 const std = @import("std");
 const stdin = std.io.getStdIn().reader();
 const assert = std.debug.assert;
-
-const NoopWriter = struct {
-    pub fn print(_: NoopWriter, comptime _: []const u8, _: anytype) !void {
-        return;
-    }
-};
 const stdout = std.io.getStdOut().writer();
-const debug_writer = NoopWriter{};
-
-// a function for returning the maxumum length of a slice of strings:
-fn maxStringLength(strings: []const []const u8) u8 {
-    var max_len: u8 = 0;
-    for (strings) |string| {
-        if (string.len > max_len) {
-            max_len = string.len;
-        }
-    }
-    return max_len;
-}
 
 // The goal of this implementation was to:
 // 1. Learn Zig
@@ -27,6 +9,22 @@ fn maxStringLength(strings: []const []const u8) u8 {
 //    checks for each byte (ie nine checks for each number), however, it's
 //    memory efficient I guess.
 const Calculator = struct {
+    const NoopWriter = struct {
+        pub fn print(_: NoopWriter, comptime _: []const u8, _: anytype) !void {
+            return;
+        }
+    };
+    const debug_writer = NoopWriter{};
+    fn maxStringLength(strings: []const []const u8) u8 {
+        var max_len: u8 = 0;
+        for (strings) |string| {
+            if (string.len > max_len) {
+                max_len = string.len;
+            }
+        }
+        return max_len;
+    }
+
     const possible_numbers = [_][]const u8{
         //          12345
         //          -----
