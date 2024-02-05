@@ -25,7 +25,7 @@ fn maxStringLength(strings: []const []const u8) u8 {
 // 1. Learn Zig
 // 2. Read the input byte by byte to avoid multiple scans. This leads to more
 //    checks for each byte (ie nine checks for each number), however, it's
-//    memory efficient.
+//    memory efficient I guess.
 const Calculator = struct {
     const possible_numbers = [_][]const u8{
         //          12345
