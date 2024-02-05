@@ -15,6 +15,7 @@ const Calculator = struct {
         }
     };
     const debug_writer = NoopWriter{};
+
     fn maxStringLength(strings: []const []const u8) u8 {
         var max_len: u8 = 0;
         for (strings) |string| {
@@ -38,7 +39,7 @@ const Calculator = struct {
         "eight", // eight
         "nine", //  nine
     };
-    const maxNumWordLen = maxStringLength(&possible_numbers); // 5
+    const maxNumWordLen = maxStringLength(&possible_numbers); // 5 as in "three" or "seven" or "eight"
 
     question_part: u8 = 2,
     bytes_read: u64 = 0,
