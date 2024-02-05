@@ -1,6 +1,6 @@
 const std = @import("std");
-const stdin = std.io.getStdIn().reader();
 const assert = std.debug.assert;
+const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 
 // The goal of this implementation was to:
