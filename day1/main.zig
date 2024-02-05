@@ -9,12 +9,12 @@ const stdout = std.io.getStdOut().writer();
 //    checks for each byte (ie nine checks for each number), however, it's
 //    memory efficient I guess.
 const Calculator = struct {
-    const NoopWriter = struct {
-        pub fn print(_: NoopWriter, comptime _: []const u8, _: anytype) !void {
+    const debug_writer = struct {
+        const Self = @This();
+        pub fn print(_: Self, comptime _: []const u8, _: anytype) !void {
             return;
         }
-    };
-    const debug_writer = NoopWriter{};
+    }{};
 
     fn maxStringLength(strings: []const []const u8) u8 {
         var max_len: u8 = 0;
