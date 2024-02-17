@@ -274,4 +274,5 @@ pub fn main() !void {
     };
     const total_sum = try reader.readBytes(stdin);
     try stdout.print("total_sum={d}\n", .{total_sum});
+    try stdout.print("part2_total_power={d}\n", .{reader.part2_total_power});
 }
