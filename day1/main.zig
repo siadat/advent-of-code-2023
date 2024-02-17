@@ -41,7 +41,7 @@ const Calculator = struct {
     };
     const maxNumWordLen = maxStringLength(&possible_numbers); // 5 as in "three" or "seven" or "eight"
 
-    question_part: u8 = 2,
+    question_part: u3 = 2,
     bytes_read: u64 = 0,
     total_sum: u64 = 0,
     line_first_num: u64 = 0,
