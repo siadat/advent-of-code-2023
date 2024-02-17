@@ -17,9 +17,28 @@ const Token = enum {
     ColorWord,
 };
 
-test "test one game" {
-    const line = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 14 red, 8 green; 14 red, 1 blue, 4 green";
-    _ = line;
+test "test_one_game" {
+    const StringReader = struct {
+        const Self = @This();
+        line: []const u8, // TODO: why do I need const here? https://zig.news/kristoff/what-s-a-string-literal-in-zig-31e9
+        index: u8 = 0,
+        fn readByte(self: *Self) !u8 {
+            if (self.index >= self.line.len) {
+                return error.EndOfStream;
+            }
+            defer self.index += 1;
+            return self.line[self.index];
+        }
+    };
+    var reader = MainReader{
+        .current_lit = std.ArrayList(u8).init(std.heap.page_allocator),
+    };
+    var string_reader = StringReader{
+        .line = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 14 red, 8 green; 14 red, 1 blue, 4 green",
+    };
+    // @compileLog(@TypeOf(string_reader));
+    const got = try reader.readBytes(&string_reader); // TODO: why does passing a pointer not work? ie why `var s = &StringReader{.line="..."}; try reader.readBytes(s)` does't work
+    assert(got == 0);
 }
 
 test "let's see if I can use an ArrayList as a string" {
@@ -52,6 +71,7 @@ const MainReader = struct {
     fn readFn(_: *MainReader, _: []u8) std.os.ReadError!usize {}
 
     fn handleByte(self: *MainReader, byte: u8) !void {
+        // try stdout.print("Saw {any}='{c}'\n", .{ byte, byte });
         switch (byte) {
             ';', ':', ',', ' ' => try self.handleBreak(),
             '\n' => try self.handleEndOfGame(),
@@ -126,7 +146,7 @@ const MainReader = struct {
         try self.handleEndOfGame();
         try stdout.print("total_sum={d}\n", .{self.total_sum});
     }
-    fn readBytes(self: *MainReader, reader: anytype) !void {
+    fn readBytes(self: *MainReader, reader: anytype) !@TypeOf(self.total_sum) { // TODO: AWHHHHWWWHHHAT WOW
         defer self.current_lit.deinit();
 
         self.current_type = Token.GameWord;
@@ -136,13 +156,14 @@ const MainReader = struct {
                     try self.handleEndOfFile();
                     break;
                 },
-                else => {
-                    try stdout.print("Got error: {?}", .{err});
-                    return err;
-                },
+                // else => {
+                //     try stdout.print("Got error: {?}", .{err});
+                //     return err;
+                // },
             };
             try self.handleByte(byte);
         }
+        return self.total_sum;
     }
 };
 
