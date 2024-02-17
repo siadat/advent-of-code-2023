@@ -21,12 +21,13 @@ test "let's see if blah" {
     const StringReader = struct {
         const Self = @This();
         line: []const u8, // TODO: why do I need const here? https://zig.news/kristoff/what-s-a-string-literal-in-zig-31e9 answer: because u8s in string literals are const
-        index: u8 = 0,
+        index: u64 = 0,
         fn readByte(self: *Self) !u8 {
             if (self.index >= self.line.len) {
                 return error.EndOfStream;
             }
             if (self.index == std.math.maxInt(@TypeOf(self.index))) {
+                try stdout.print("self.index={d} and string length is {d}\n", .{ self.index, self.line.len });
                 return error.StringIsTooLarge;
             }
             defer self.index += 1;
@@ -35,7 +36,25 @@ test "let's see if blah" {
     };
     const test_cases = [_]struct { game: []const u8, want: u64 }{
         .{ .game = "Game 100: ", .want = 100 },
+        .{ .game = "Game 100: 14 red\n\n", .want = 0 },
         .{ .game = "Game 100: 12 green", .want = 100 },
+        .{ .game = 
+        \\Game 98: 1 green, 9 red; 1 red, 2 green, 7 blue; 8 red, 1 blue; 6 red, 2 green; 1 green, 6 blue
+        \\Game 99: 1 green, 2 red, 6 blue; 6 red, 1 green, 5 blue; 11 blue, 6 red; 11 red, 1 green; 1 green, 11 red, 9 blue
+        \\Game 100: 12 green, 8 blue, 2 red; 7 blue, 14 red, 8 green; 14 red, 1 blue, 4 green
+        , .want = 98 + 99 },
+        .{ .game = 
+        \\Game 100: 12 green, 8 blue, 2 red; 7 blue, 11 red, 8 green
+        \\Game 1000: 13 red
+        \\Game 200: 5 blue
+        , .want = 100 + 200 },
+        .{ .game = 
+        \\Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
+        \\Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue
+        \\Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
+        \\Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
+        \\Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
+        , .want = 8 },
         .{ .game = "Game 100: 12 red; 13 green; 14 blue", .want = 100 },
         .{ .game = "Game 100: 12 red, 13 green, 14 blue", .want = 100 },
         .{ .game = "Game 100: 13 red", .want = 0 },
@@ -92,14 +111,16 @@ const MainReader = struct {
     fn readFn(_: *MainReader, _: []u8) std.os.ReadError!usize {}
 
     fn handleByte(self: *MainReader, byte: u8) !void {
-        // try stdout.print("Saw {any}='{c}'\n", .{ byte, byte });
         switch (byte) {
             ';', ':', ',', ' ' => try self.handleBreak(),
             '\n' => try self.handleEndOfGame(),
             '0'...'9' => try self.handleAlphabet(byte),
             'a'...'z' => try self.handleAlphabet(byte),
             'A'...'Z' => try self.handleAlphabet(byte),
-            else => unreachable,
+            else => {
+                try stdout.print("Saw {any}='{c}'\n", .{ byte, byte });
+                unreachable;
+            },
         }
     }
     fn handleBreak(self: *MainReader) !void {
@@ -154,19 +175,19 @@ const MainReader = struct {
         if (self.valid_game) {
             self.total_sum += self.current_game_id;
             // try stdout.print("Game {} was valid, adding {d}, getting {d}\n", .{ self.current_game_id, self.current_game_id, self.total_sum });
-            // setting current_game_id to 0 so that multiple calls to
-            // this function are idempotent
-            self.current_game_id = 0;
         }
         self.current_type = Token.GameWord;
         self.valid_game = true;
         self.current_cube_count = 0;
         self.current_lit.clearRetainingCapacity();
+        // setting current_game_id to 0 so that multiple calls to
+        // this function are idempotent
+        self.current_game_id = 0;
     }
     fn handleEndOfFile(self: *MainReader) !void {
         try self.handleEndOfGame();
     }
-    fn readBytes(self: *MainReader, reader: anytype) !@TypeOf(self.total_sum) { // TODO: AWHHHHWWWHHHAT WOW
+    fn readBytes(self: *MainReader, reader: anytype) !@TypeOf(self.total_sum) { // TODO: AWHHHHWWWHHHAT WOW I LOVE @TypeOf
         defer self.current_lit.deinit();
 
         self.current_type = Token.GameWord;
