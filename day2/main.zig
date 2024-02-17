@@ -32,7 +32,7 @@ test "learning" {
     inline for (0..500) |_| try list.append('m');
 }
 
-test "let's see if blah" {
+test "actual tests for the games" {
     const StringReader = struct {
         const Self = @This();
         line: []const u8, // TODO: why do I need const here? https://zig.news/kristoff/what-s-a-string-literal-in-zig-31e9 answer: because u8s in string literals are const
