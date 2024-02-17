@@ -17,6 +17,21 @@ const Token = enum {
     ColorWord,
 };
 
+test "test memory leak for ArrayList" {
+    var list = std.ArrayList(u8).init(std.testing.allocator);
+    defer list.deinit();
+    var some_list = &list; // There will be a memory leak if you change this to `var some_list = list;`
+    try some_list.append('q');
+}
+
+test "learning" {
+    var list = std.ArrayList(u8).init(std.testing.allocator);
+    defer list.deinit();
+
+    defer std.log.warn("capacity: {d}\n", .{list.capacity});
+    inline for (0..500) |_| try list.append('m');
+}
+
 test "let's see if blah" {
     const StringReader = struct {
         const Self = @This();
@@ -64,10 +79,11 @@ test "let's see if blah" {
         .{ .game = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 11 red, 8 green; 4 red, 1 blue, 4 green", .want = 100 },
     };
     for (test_cases, 0..) |test_case, index| {
-        var list = std.ArrayList(u8).init(std.heap.page_allocator);
+        var list = std.ArrayList(u8).init(std.testing.allocator);
         defer list.deinit();
+
         var reader = MainReader{
-            .current_lit = list,
+            .current_lit = &list,
         };
         var string_reader = StringReader{
             .line = test_case.game,
@@ -83,8 +99,18 @@ test "let's see if blah" {
 }
 
 test "let's see if I can use an ArrayList as a string" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var list = std.ArrayList(u8).init(gpa.allocator());
+    defer {
+        list.deinit();
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) {
+            std.log.warn("There is memory leak\n", .{});
+        }
+    }
+
     var reader = MainReader{
-        .current_lit = std.ArrayList(u8).init(std.heap.page_allocator),
+        .current_lit = &list,
     };
     try reader.current_lit.append('o');
     try reader.current_lit.append('k');
@@ -95,7 +121,7 @@ const MainReader = struct {
     // stdin: std.io.Reader(*MainReader, std.os.ReadError, readFn),
     current_type: Token = Token.GameWord,
 
-    current_lit: std.ArrayList(u8), // .init(std.heap.page_allocator),
+    current_lit: *std.ArrayList(u8), // .init(std.heap.page_allocator),
 
     max_red: u64 = 12,
     max_green: u64 = 13,
@@ -188,8 +214,7 @@ const MainReader = struct {
         try self.handleEndOfGame();
     }
     fn readBytes(self: *MainReader, reader: anytype) !@TypeOf(self.total_sum) { // TODO: AWHHHHWWWHHHAT WOW I LOVE @TypeOf
-        defer self.current_lit.deinit();
-
+        //defer self.current_lit.deinit(); Commented because we don't own this pointer, so we shouldn't free it.
         self.current_type = Token.GameWord;
         while (true) {
             const byte = reader.readByte() catch |err| switch (err) {
@@ -209,8 +234,17 @@ const MainReader = struct {
 };
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var list = std.ArrayList(u8).init(gpa.allocator());
+    defer {
+        list.deinit();
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) {
+            std.log.warn("There is memory leak\n", .{});
+        }
+    }
     var reader = MainReader{
-        .current_lit = std.ArrayList(u8).init(std.heap.page_allocator),
+        .current_lit = &list,
     };
     const total_sum = try reader.readBytes(stdin);
     try stdout.print("total_sum={d}\n", .{total_sum});
