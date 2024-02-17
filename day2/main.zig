@@ -17,28 +17,50 @@ const Token = enum {
     ColorWord,
 };
 
-test "test_one_game" {
+test "let's see if blah" {
     const StringReader = struct {
         const Self = @This();
-        line: []const u8, // TODO: why do I need const here? https://zig.news/kristoff/what-s-a-string-literal-in-zig-31e9
+        line: []const u8, // TODO: why do I need const here? https://zig.news/kristoff/what-s-a-string-literal-in-zig-31e9 answer: because u8s in string literals are const
         index: u8 = 0,
         fn readByte(self: *Self) !u8 {
             if (self.index >= self.line.len) {
                 return error.EndOfStream;
             }
+            if (self.index == std.math.maxInt(@TypeOf(self.index))) {
+                return error.StringIsTooLarge;
+            }
             defer self.index += 1;
             return self.line[self.index];
         }
     };
-    var reader = MainReader{
-        .current_lit = std.ArrayList(u8).init(std.heap.page_allocator),
+    const test_cases = [_]struct { game: []const u8, want: u64 }{
+        .{ .game = "Game 100: ", .want = 100 },
+        .{ .game = "Game 100: 12 green", .want = 100 },
+        .{ .game = "Game 100: 12 red; 13 green; 14 blue", .want = 100 },
+        .{ .game = "Game 100: 12 red, 13 green, 14 blue", .want = 100 },
+        .{ .game = "Game 100: 13 red", .want = 0 },
+        .{ .game = "Game 100: 14 green", .want = 0 },
+        .{ .game = "Game 100: 15 blue", .want = 0 },
+        .{ .game = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 14 red, 8 green; 14 red, 1 blue, 4 green", .want = 0 },
+        .{ .game = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 11 red, 8 green; 4 red, 1 blue, 4 green", .want = 100 },
     };
-    var string_reader = StringReader{
-        .line = "Game 100: 12 green, 8 blue, 2 red; 7 blue, 14 red, 8 green; 14 red, 1 blue, 4 green",
-    };
-    // @compileLog(@TypeOf(string_reader));
-    const got = try reader.readBytes(&string_reader); // TODO: why does passing a pointer not work? ie why `var s = &StringReader{.line="..."}; try reader.readBytes(s)` does't work
-    assert(got == 0);
+    for (test_cases, 0..) |test_case, index| {
+        var list = std.ArrayList(u8).init(std.heap.page_allocator);
+        defer list.deinit();
+        var reader = MainReader{
+            .current_lit = list,
+        };
+        var string_reader = StringReader{
+            .line = test_case.game,
+        };
+        // @compileLog(@TypeOf(&string_reader));
+        // TODO: why does passing a pointer not work? ie why `var s = &StringReader{.line="..."}; try reader.readBytes(s)` does't work. answer: because &SomeType{} returns a const pointer.
+        const got = try reader.readBytes(&string_reader);
+        if (got != test_case.want) {
+            try stdout.print("index={d} got={d}, want={d}\n", .{ index, got, test_case.want });
+        }
+        assert(got == test_case.want);
+    }
 }
 
 test "let's see if I can use an ArrayList as a string" {
@@ -47,7 +69,6 @@ test "let's see if I can use an ArrayList as a string" {
     };
     try reader.current_lit.append('o');
     try reader.current_lit.append('k');
-    try stdout.print("It works: '{s}'\n", .{reader.current_lit.items});
     assert(std.mem.eql(u8, "ok", reader.current_lit.items));
 }
 
@@ -105,15 +126,15 @@ const MainReader = struct {
                 switch (std.meta.stringToEnum(Color, self.current_lit.items).?) {
                     .blue => if (self.current_cube_count > self.max_blue) {
                         self.valid_game = false;
-                        try stdout.print("Game {}: is invalid because {d} blue > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_blue });
+                        // try stdout.print("Game {}: is invalid because {d} blue > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_blue });
                     },
                     .green => if (self.current_cube_count > self.max_green) {
                         self.valid_game = false;
-                        try stdout.print("Game {}: is invalid because {d} green > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_green });
+                        // try stdout.print("Game {}: is invalid because {d} green > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_green });
                     },
                     .red => if (self.current_cube_count > self.max_red) {
                         self.valid_game = false;
-                        try stdout.print("Game {}: is invalid because {d} red > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_red });
+                        // try stdout.print("Game {}: is invalid because {d} red > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_red });
                     },
                 }
                 self.current_type = Token.ColorCount;
@@ -132,7 +153,7 @@ const MainReader = struct {
         try self.handleBreak();
         if (self.valid_game) {
             self.total_sum += self.current_game_id;
-            try stdout.print("Game {} was valid, adding {d}, getting {d}\n", .{ self.current_game_id, self.current_game_id, self.total_sum });
+            // try stdout.print("Game {} was valid, adding {d}, getting {d}\n", .{ self.current_game_id, self.current_game_id, self.total_sum });
             // setting current_game_id to 0 so that multiple calls to
             // this function are idempotent
             self.current_game_id = 0;
@@ -144,7 +165,6 @@ const MainReader = struct {
     }
     fn handleEndOfFile(self: *MainReader) !void {
         try self.handleEndOfGame();
-        try stdout.print("total_sum={d}\n", .{self.total_sum});
     }
     fn readBytes(self: *MainReader, reader: anytype) !@TypeOf(self.total_sum) { // TODO: AWHHHHWWWHHHAT WOW
         defer self.current_lit.deinit();
@@ -156,10 +176,10 @@ const MainReader = struct {
                     try self.handleEndOfFile();
                     break;
                 },
-                // else => {
-                //     try stdout.print("Got error: {?}", .{err});
-                //     return err;
-                // },
+                else => {
+                    try stdout.print("Got error: {?}", .{err});
+                    return err;
+                },
             };
             try self.handleByte(byte);
         }
@@ -171,5 +191,6 @@ pub fn main() !void {
     var reader = MainReader{
         .current_lit = std.ArrayList(u8).init(std.heap.page_allocator),
     };
-    try reader.readBytes(stdin);
+    const total_sum = try reader.readBytes(stdin);
+    try stdout.print("total_sum={d}\n", .{total_sum});
 }
