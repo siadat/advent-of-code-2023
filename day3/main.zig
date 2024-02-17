@@ -7,7 +7,7 @@ test "example" {
         string: []const u8,
         fn readByte(_: Self) !void {}
     };
-    _ = StringReader{
+    const reader = StringReader{
         .string =
         \\467..114..
         \\...*......
@@ -21,6 +21,8 @@ test "example" {
         \\.664.598..
         ,
     };
+    var solver = Solver{};
+    solver.solve(reader);
     assert(1 == 1);
 }
 
