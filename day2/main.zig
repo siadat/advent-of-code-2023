@@ -49,7 +49,7 @@ test "actual tests for the games" {
             return self.line[self.index];
         }
     };
-    const test_cases = [_]struct { game: []const u8, want: u64, want_power: u64 = 0 }{
+    const test_cases = [_]struct { game: []const u8, want: u64, want_power: i64 = -1 }{
         .{ .game = "Game 100: ", .want = 100 },
         .{ .game = "Game 100: 14 red\n\n", .want = 0 },
         .{ .game = "Game 100: 12 green", .want = 100 },
@@ -69,7 +69,7 @@ test "actual tests for the games" {
         \\Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
         \\Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
         \\Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
-        , .want = 8, .want_power = 12 + 1560 + 630 + 36 },
+        , .want = 8, .want_power = 48 + 12 + 1560 + 630 + 36 },
         .{ .game = "Game 100: 12 red; 13 green; 14 blue", .want = 100 },
         .{ .game = "Game 100: 12 red, 13 green, 14 blue", .want = 100 },
         .{ .game = "Game 100: 13 red", .want = 0 },
@@ -96,7 +96,7 @@ test "actual tests for the games" {
         }
         assert(got == test_case.want);
 
-        if (test_case.want_power != 0) {
+        if (test_case.want_power != -1) {
             if (reader.part2_total_power != test_case.want_power) {
                 try stdout.print("index={d} got_power={d}, want_power={d}\n", .{ index, reader.part2_total_power, test_case.want_power });
             }
@@ -166,9 +166,6 @@ const MainReader = struct {
         if (self.current_lit.items.len == 0) {
             return;
         }
-        if (!self.valid_game) {
-            return;
-        }
 
         switch (self.current_type) {
             Token.GameWord => {
@@ -184,23 +181,32 @@ const MainReader = struct {
             },
             Token.ColorWord => {
                 switch (std.meta.stringToEnum(Color, self.current_lit.items).?) {
-                    .blue => if (self.current_cube_count > self.max_blue) {
-                        self.valid_game = false;
-                        // try stdout.print("Game {}: is invalid because {d} blue > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_blue });
-                    } else if (self.current_cube_count > self.part2_max_valid_blue_seen) {
-                        self.part2_max_valid_blue_seen = self.current_cube_count;
+                    .blue => {
+                        if (self.current_cube_count > self.max_blue) {
+                            self.valid_game = false;
+                            // try stdout.print("Game {}: is invalid because {d} blue > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_blue });
+                        }
+                        if (self.current_cube_count > self.part2_max_valid_blue_seen) {
+                            self.part2_max_valid_blue_seen = self.current_cube_count;
+                        }
                     },
-                    .green => if (self.current_cube_count > self.max_green) {
-                        self.valid_game = false;
-                        // try stdout.print("Game {}: is invalid because {d} green > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_green });
-                    } else if (self.current_cube_count > self.part2_max_valid_green_seen) {
-                        self.part2_max_valid_green_seen = self.current_cube_count;
+                    .green => {
+                        if (self.current_cube_count > self.max_green) {
+                            self.valid_game = false;
+                            // try stdout.print("Game {}: is invalid because {d} green > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_green });
+                        }
+                        if (self.current_cube_count > self.part2_max_valid_green_seen) {
+                            self.part2_max_valid_green_seen = self.current_cube_count;
+                        }
                     },
-                    .red => if (self.current_cube_count > self.max_red) {
-                        self.valid_game = false;
-                        // try stdout.print("Game {}: is invalid because {d} red > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_red });
-                    } else if (self.current_cube_count > self.part2_max_valid_red_seen) {
-                        self.part2_max_valid_red_seen = self.current_cube_count;
+                    .red => {
+                        if (self.current_cube_count > self.max_red) {
+                            self.valid_game = false;
+                            // try stdout.print("Game {}: is invalid because {d} red > {d}\n", .{ self.current_game_id, self.current_cube_count, self.max_red });
+                        }
+                        if (self.current_cube_count > self.part2_max_valid_red_seen) {
+                            self.part2_max_valid_red_seen = self.current_cube_count;
+                        }
                     },
                 }
                 self.current_type = Token.ColorCount;
@@ -209,19 +215,19 @@ const MainReader = struct {
         self.current_lit.clearRetainingCapacity();
     }
     fn handleAlphabet(self: *MainReader, byte: u8) !void {
-        if (!self.valid_game) {
-            // try stdout.print("Char '{c}', valid_game={}\n", .{ byte, self.valid_game });
-            return;
-        }
         try self.current_lit.append(byte);
     }
     fn handleEndOfGame(self: *MainReader) !void {
         try self.handleBreak();
         if (self.valid_game) {
             self.total_sum += self.current_game_id;
-            self.part2_total_power += self.part2_max_valid_red_seen * self.part2_max_valid_green_seen * self.part2_max_valid_blue_seen;
             // try stdout.print("Game {} was valid, adding {d}, getting {d}\n", .{ self.current_game_id, self.current_game_id, self.total_sum });
         }
+        // try stdout.print("Game {}: max_red={d}, max_green={d}, max_blue={d}\n", .{ self.current_game_id, self.part2_max_valid_red_seen, self.part2_max_valid_green_seen, self.part2_max_valid_blue_seen });
+        self.part2_total_power += self.part2_max_valid_red_seen * self.part2_max_valid_green_seen * self.part2_max_valid_blue_seen;
+        self.part2_max_valid_red_seen = 0;
+        self.part2_max_valid_green_seen = 0;
+        self.part2_max_valid_blue_seen = 0;
         self.current_type = Token.GameWord;
         self.valid_game = true;
         self.current_cube_count = 0;
