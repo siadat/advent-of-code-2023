@@ -77,9 +77,9 @@ const Solver = struct {
                     break;
                 },
                 else => {
-                    std.log.err("Error while reading: {?}", err);
-                    //try stdout.print("Got error: {?}\n", .{err});
+                    try stdout.print("Got error: {?}\n", .{err});
 
+                    // std.log.err("Error while reading: {?}", err);
                     // The above std.log.err line fails to compile with the following error:
                     //     zig test ./day3/main.zig
                     //     /home/linuxbrew/.linuxbrew/Cellar/zig/0.11.0/lib/zig/std/fmt.zig:87:9: error: expected tuple or struct argument, found @typeInfo(@typeInfo(@TypeOf(main.test.example.StringReader.readByte)).Fn.return_type.?).ErrorUnion.error_set
