@@ -37,11 +37,17 @@ const Solver = struct {
     // unused when the parent Solver goes out of scope. Not sure though.
     line: []const u8 = "",
 
-    pub fn handleByte(_: *Self, _: u8) !void {
-        // TODO
+    pub fn handleByte(self: *Self, byte: u8) !void {
+        std.log.info("INFO: {d} '{c}'", .{ byte, byte });
+        switch (byte) {
+            '\n' => try self.handleEndOfLine(),
+            '0'...'9' => try self.handleNumber(byte),
+            '.' => try self.handleDot(byte),
+            else => try self.handleSymbol(byte),
+        }
     }
     pub fn handleEndOfLine(_: *Self) !void {
-        // TODO
+        //
     }
     pub fn solve(self: *Self, reader: anytype) !void {
         while (true) {
