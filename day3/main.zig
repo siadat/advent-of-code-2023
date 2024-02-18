@@ -28,9 +28,13 @@ test "example" {
 
 const Solver = struct {
     total_sum: u64 = 0,
-    pub fn solve(_: *Solver, _: anytype) void {
-        //
-    }
+    symbol_line_idx: u64 = 0,
+
+    line_prev: []const u8 = "",
+    line_curr: []const u8 = "",
+    line_next: []const u8 = "",
+
+    pub fn solve(_: *Solver, _: anytype) void {}
 };
 
 pub fn main() void {
