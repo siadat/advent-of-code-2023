@@ -27,6 +27,7 @@ test "example" {
 }
 
 const Solver = struct {
+    const Self = @This();
     total_sum: u64 = 0,
     symbol_line_idx: u64 = 0,
 
@@ -34,7 +35,27 @@ const Solver = struct {
     line_curr: []const u8 = "",
     line_next: []const u8 = "",
 
-    pub fn solve(_: *Solver, _: anytype) void {}
+    pub fn handleByte(_: *Self, _: u8) !void {
+        // TODO
+    }
+    pub fn handleEndOfLine(_: *Self) !void {
+        // TODO
+    }
+    pub fn solve(self: *Self, reader: anytype) !void {
+        while (true) {
+            const byte = reader.readByte() catch |err| switch (err) {
+                error.EndOfStream => {
+                    try self.handleEndOfLine();
+                    break;
+                },
+                else => {
+                    std.log.err("Error while reading: {}\n", err);
+                    return err;
+                },
+            };
+            try self.handleByte(byte);
+        }
+    }
 };
 
 pub fn main() void {
