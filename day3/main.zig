@@ -66,6 +66,6 @@ pub fn main() void {
 
     // Alternative approach (keep one single line in memoery, simple):
     // Read line[n] one byte at a time
-    // Read line[n+1] one byte at a time and match each symbole or number with number or symboles in line[n] and update the same array after match is done
+    // Read line[n+1] one byte at a time and match each symbole or number with number or symboles in line[n] and update the same array after match is done, might have to do some acrobatics to make sure we don't overwrite a symbole or number too early. I can switch to one of the simpler approaches depending on how it unfolds.
     // repeat
 }
