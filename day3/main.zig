@@ -23,10 +23,11 @@ test "example" {
     };
     var solver = Solver{};
     solver.solve(reader);
-    assert(1 == 1);
+    assert(solver.total_sum == 4361);
 }
 
 const Solver = struct {
+    total_sum: u64 = 0,
     pub fn solve(_: *Solver, _: anytype) void {
         //
     }
