@@ -63,4 +63,9 @@ pub fn main() void {
     //   lineB = lines[i+1]
     //   lineC = lines[i+2]
     //   Check all symbols on lineB and match with numbers on lineA and lineC
+
+    // Alternative approach (keep one single line in memoery, simple):
+    // Read line[n] one byte at a time
+    // Read line[n+1] one byte at a time and match each symbole or number with number or symboles in line[n] and update the same array after match is done
+    // repeat
 }
