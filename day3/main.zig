@@ -38,10 +38,23 @@ test "example" {
     assert(solver.total_sum == 4361);
 }
 
+const Token = enum {
+    StartOfFile,
+    Number,
+    Symbol,
+    Dot,
+};
+
 const Solver = struct {
     const Self = @This();
     total_sum: u64 = 0,
-    symbol_line_idx: u64 = 0,
+
+    current_index: u64 = 0,
+
+    current_token: Token = Token.StartOfFile,
+    current_number: u64 = 0,
+    current_number_start_idx: ?u64 = null,
+    current_symbol_start_idx: ?u64 = null,
 
     // Let's see if appending to this causes a memory leak:
     // ... actually, because we don't append, the old one is probably marked as
@@ -49,16 +62,18 @@ const Solver = struct {
     line: []const u8 = "",
 
     pub fn handleByte(self: *Self, byte: u8) !void {
+        defer self.current_index += 1;
+
         std.log.warn("INFO: {d} '{c}'", .{ byte, byte });
         switch (byte) {
             '\n' => try self.handleEndOfLine(),
             '0'...'9' => try self.handleNumber(byte),
             '.' => try self.handleDot(byte),
-            else => try self.handleSymbol(byte),
+            else => try self.handleSymbol(),
         }
     }
-    pub fn handleSymbol(_: *Self, _: u8) !void {
-        //
+    pub fn handleSymbol(self: *Self) !void {
+        self.current_symbol_start_idx = self.current_index;
     }
     pub fn handleNumber(_: *Self, _: u8) !void {
         //
