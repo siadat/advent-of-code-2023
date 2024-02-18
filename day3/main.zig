@@ -32,10 +32,8 @@ const Solver = struct {
     total_sum: u64 = 0,
     symbol_line_idx: u64 = 0,
 
-    // Let's see if these cause a memory leak:
-    line_prev: []const u8 = "",
-    line_curr: []const u8 = "",
-    line_next: []const u8 = "",
+    // Let's see if appending to this causes a memory leak:
+    line: []const u8 = "",
 
     pub fn handleByte(_: *Self, _: u8) !void {
         // TODO
