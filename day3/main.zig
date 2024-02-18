@@ -1,14 +1,25 @@
 const std = @import("std");
 const stdin = std.io.getStdIn.reader();
+const stdout = std.io.getStdOut().writer();
 const assert = std.debug.assert;
 
 test "example" {
     const StringReader = struct {
         const Self = @This();
         string: []const u8,
-        fn readByte(_: Self) !void {}
+        index: u64 = 0,
+        fn readByte(self: *Self) !u8 {
+            if (self.index == std.math.maxInt(u64)) {
+                return error.IndexTooLarge;
+            }
+            if (self.index == self.string.len) {
+                return error.EndOfStream;
+            }
+            defer self.index += 1;
+            return self.string[self.index];
+        }
     };
-    const reader = StringReader{
+    var reader = StringReader{
         .string =
         \\467..114..
         \\...*......
@@ -23,7 +34,7 @@ test "example" {
         ,
     };
     var solver = Solver{};
-    solver.solve(reader);
+    try solver.solve(&reader);
     assert(solver.total_sum == 4361);
 }
 
@@ -38,13 +49,22 @@ const Solver = struct {
     line: []const u8 = "",
 
     pub fn handleByte(self: *Self, byte: u8) !void {
-        std.log.info("INFO: {d} '{c}'", .{ byte, byte });
+        std.log.warn("INFO: {d} '{c}'", .{ byte, byte });
         switch (byte) {
             '\n' => try self.handleEndOfLine(),
             '0'...'9' => try self.handleNumber(byte),
             '.' => try self.handleDot(byte),
             else => try self.handleSymbol(byte),
         }
+    }
+    pub fn handleSymbol(_: *Self, _: u8) !void {
+        //
+    }
+    pub fn handleNumber(_: *Self, _: u8) !void {
+        //
+    }
+    pub fn handleDot(_: *Self, _: u8) !void {
+        //
     }
     pub fn handleEndOfLine(_: *Self) !void {
         //
@@ -57,7 +77,18 @@ const Solver = struct {
                     break;
                 },
                 else => {
-                    std.log.err("Error while reading: {}\n", err);
+                    std.log.err("Error while reading: {?}", err);
+                    //try stdout.print("Got error: {?}\n", .{err});
+
+                    // The above std.log.err line fails to compile with the following error:
+                    //     zig test ./day3/main.zig
+                    //     /home/linuxbrew/.linuxbrew/Cellar/zig/0.11.0/lib/zig/std/fmt.zig:87:9: error: expected tuple or struct argument, found @typeInfo(@typeInfo(@TypeOf(main.test.example.StringReader.readByte)).Fn.return_type.?).ErrorUnion.error_set
+                    //             @compileError("expected tuple or struct argument, found " ++ @typeName(ArgsType));
+                    //             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    //     make: *** [Makefile:2: run-day3] Error 1
+                    //
+                    //     [Process exited 2]
+                    // However, stdout.print works fine.
                     return err;
                 },
             };
@@ -98,5 +129,5 @@ pub fn main() void {
     // Read line[n+1] one byte at a time and match each symbole or number with number or symboles in line[n] and update the same array after match is done, might have to do some acrobatics to make sure we don't overwrite a symbole or number too early. I can switch to one of the simpler approaches depending on how it unfolds.
     // repeat
     const solver = Solver{};
-    solver.solve(stdin);
+    try solver.solve(stdin);
 }
