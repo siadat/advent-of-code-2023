@@ -33,6 +33,8 @@ const Solver = struct {
     symbol_line_idx: u64 = 0,
 
     // Let's see if appending to this causes a memory leak:
+    // ... actually, because we don't append, the old one is probably marked as
+    // unused when the parent Solver goes out of scope. Not sure though.
     line: []const u8 = "",
 
     pub fn handleByte(_: *Self, _: u8) !void {
