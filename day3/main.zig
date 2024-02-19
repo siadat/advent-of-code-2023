@@ -33,7 +33,16 @@ test "example" {
         \\.664.598..
         ,
     };
-    var solver = Solver{};
+    var line = std.ArrayList(u8).init(std.testing.allocator);
+    defer line.deinit();
+
+    var number_str = std.ArrayList(u8).init(std.testing.allocator);
+    defer number_str.deinit();
+
+    var solver = Solver{
+        .line = &line,
+        .current_number_str = &number_str,
+    };
     try solver.solve(&reader);
     assert(solver.total_sum == 4361);
 }
@@ -42,47 +51,59 @@ const Token = enum {
     StartOfFile,
     Number,
     Symbol,
-    Dot,
+    Break,
 };
 
 const Solver = struct {
     const Self = @This();
     total_sum: u64 = 0,
 
+    line: *std.ArrayList(u8),
+    current_number_str: *std.ArrayList(u8),
     current_index: u64 = 0,
-
     current_token: Token = Token.StartOfFile,
     current_number: u64 = 0,
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
-    // Let's see if appending to this causes a memory leak:
-    // ... actually, because we don't append, the old one is probably marked as
-    // unused when the parent Solver goes out of scope. Not sure though.
-    line: []const u8 = "",
-
     pub fn handleByte(self: *Self, byte: u8) !void {
         defer self.current_index += 1;
 
-        std.log.warn("INFO: {d} '{c}'", .{ byte, byte });
+        std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
+        std.log.info("INFO: {d} '{c}'", .{ byte, byte });
+
         switch (byte) {
             '\n' => try self.handleEndOfLine(),
             '0'...'9' => try self.handleNumber(byte),
             '.' => try self.handleDot(byte),
-            else => try self.handleSymbol(),
+            else => try self.handleSymbol(byte),
         }
     }
-    pub fn handleSymbol(self: *Self) !void {
+    pub fn handleSymbol(self: *Self, byte: u8) !void {
         self.current_symbol_start_idx = self.current_index;
+        self.current_token = Token.Symbol;
+
+        try self.line.append(byte);
+        self.current_number_str.clearRetainingCapacity();
     }
-    pub fn handleNumber(_: *Self, _: u8) !void {
-        //
+    pub fn handleNumber(self: *Self, byte: u8) !void {
+        // building a number, there might be more digits later
+        self.current_token = Token.Number;
+
+        try self.current_number_str.append(byte);
+        try self.line.append(byte);
     }
-    pub fn handleDot(_: *Self, _: u8) !void {
-        //
+    pub fn handleDot(self: *Self, byte: u8) !void {
+        self.current_token = Token.Break;
+
+        self.current_number_str.clearRetainingCapacity();
+        try self.line.append(byte);
     }
-    pub fn handleEndOfLine(_: *Self) !void {
-        //
+    pub fn handleEndOfLine(self: *Self) !void {
+        self.current_token = Token.Break;
+
+        self.current_number_str.clearRetainingCapacity();
+        self.line.clearRetainingCapacity(); // TODO: do not clear
     }
     pub fn solve(self: *Self, reader: anytype) !void {
         while (true) {
