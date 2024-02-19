@@ -36,8 +36,7 @@ test "example" {
 
     const allocator = std.testing.allocator;
 
-    var solver = try NewSolver(allocator);
-    solver.init();
+    var solver = (try NewSolver(allocator)).init();
     defer solver.deinit();
 
     try solver.solve(&reader);
@@ -73,9 +72,10 @@ const Solver = struct {
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
-    fn init(self: *Self) void {
+    fn init(self: *Self) *Self {
         self.line = std.ArrayList(u8).init(self.allocator);
         self.current_number_str = std.ArrayList(u8).init(self.allocator);
+        return self;
     }
     fn deinit(self: *Self) void {
         self.line.deinit();
@@ -180,8 +180,7 @@ pub fn main() !void {
         }
     }
     const allocator = gpa.allocator();
-    var solver = try NewSolver(allocator);
-    solver.init();
+    var solver = (try NewSolver(allocator)).init();
     defer solver.deinit();
 
     try solver.solve(stdin);
