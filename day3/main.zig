@@ -38,7 +38,6 @@ test "example" {
 
     var solver = try NewSolver(allocator);
     solver.init();
-    defer allocator.destroy(solver);
     defer solver.deinit();
 
     try solver.solve(&reader);
@@ -81,6 +80,7 @@ const Solver = struct {
     fn deinit(self: *Self) void {
         self.line.deinit();
         self.current_number_str.deinit();
+        self.allocator.destroy(self);
     }
     pub fn handleByte(self: *Self, byte: u8) !void {
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
@@ -182,7 +182,6 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     var solver = try NewSolver(allocator);
     solver.init();
-    defer allocator.destroy(solver);
     defer solver.deinit();
 
     try solver.solve(stdin);
