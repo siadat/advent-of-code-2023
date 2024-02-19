@@ -1,5 +1,5 @@
 const std = @import("std");
-const stdin = std.io.getStdIn.reader();
+const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 const assert = std.debug.assert;
 
@@ -70,7 +70,7 @@ const Solver = struct {
         defer self.current_index += 1;
 
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
-        std.log.info("INFO: {d} '{c}'", .{ byte, byte });
+        std.log.warn("INFO: {d} '{c}'", .{ byte, byte });
 
         switch (byte) {
             '\n' => try self.handleEndOfLine(),
@@ -133,7 +133,7 @@ const Solver = struct {
     }
 };
 
-pub fn main() void {
+pub fn main() !void {
     // TODO:
 
     // First line (i==0):
@@ -164,6 +164,22 @@ pub fn main() void {
     // Read line[n] one byte at a time
     // Read line[n+1] one byte at a time and match each symbole or number with number or symboles in line[n] and update the same array after match is done, might have to do some acrobatics to make sure we don't overwrite a symbole or number too early. I can switch to one of the simpler approaches depending on how it unfolds.
     // repeat
-    const solver = Solver{};
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        const deinit_status = gpa.deinit();
+        if (deinit_status == .leak) {
+            std.log.err("There is memory leak\n", .{});
+        }
+    }
+    var line = std.ArrayList(u8).init(gpa.allocator());
+    defer line.deinit();
+
+    var number_str = std.ArrayList(u8).init(gpa.allocator());
+    defer number_str.deinit();
+
+    var solver = Solver{
+        .line = &line,
+        .current_number_str = &number_str,
+    };
     try solver.solve(stdin);
 }
