@@ -37,6 +37,7 @@ test "example" {
     const allocator = std.testing.allocator;
 
     var solver = try NewSolver(allocator);
+    solver.init();
     defer allocator.destroy(solver);
     defer solver.deinit();
 
@@ -48,8 +49,7 @@ fn NewSolver(allocator: std.mem.Allocator) !*Solver {
     // NOTE create on the heap, but the caller is responsible for freeing it, which is not nice at all.
     const solver = try allocator.create(Solver);
     solver.* = Solver{
-        .line = std.ArrayList(u8).init(allocator),
-        .current_number_str = std.ArrayList(u8).init(allocator),
+        .allocator = allocator,
     };
     return solver;
 }
@@ -65,14 +65,20 @@ const Solver = struct {
     const Self = @This();
     total_sum: u64 = 0,
 
-    line: std.ArrayList(u8),
-    current_number_str: std.ArrayList(u8),
+    allocator: std.mem.Allocator,
+    line: std.ArrayList(u8) = undefined,
+    current_number_str: std.ArrayList(u8) = undefined,
+
     current_index: u64 = 0,
     current_token: Token = Token.StartOfFile,
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
-    pub fn deinit(self: *Self) void {
+    fn init(self: *Self) void {
+        self.line = std.ArrayList(u8).init(self.allocator);
+        self.current_number_str = std.ArrayList(u8).init(self.allocator);
+    }
+    fn deinit(self: *Self) void {
         self.line.deinit();
         self.current_number_str.deinit();
     }
@@ -175,9 +181,9 @@ pub fn main() !void {
     }
     const allocator = gpa.allocator();
     var solver = try NewSolver(allocator);
+    solver.init();
     defer allocator.destroy(solver);
-    defer solver.line.deinit();
-    defer solver.current_number_str.deinit();
+    defer solver.deinit();
 
     try solver.solve(stdin);
 }
