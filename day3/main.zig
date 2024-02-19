@@ -62,15 +62,12 @@ const Solver = struct {
     current_number_str: *std.ArrayList(u8),
     current_index: u64 = 0,
     current_token: Token = Token.StartOfFile,
-    current_number: u64 = 0,
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
     pub fn handleByte(self: *Self, byte: u8) !void {
-        defer self.current_index += 1;
-
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
-        std.log.warn("INFO: {d} '{c}'", .{ byte, byte });
+        std.log.warn("INFO: c = {d} '{c}'", .{ byte, byte });
 
         switch (byte) {
             '\n' => try self.handleEndOfLine(),
@@ -79,31 +76,55 @@ const Solver = struct {
             else => try self.handleSymbol(byte),
         }
     }
+    fn getCurrentNumberIfAny(self: *Self) !?u64 {
+        if (self.current_number_str.items.len == 0) {
+            return null;
+        }
+        defer self.current_number_str.clearRetainingCapacity();
+        defer self.current_number_start_idx = self.current_index;
+
+        const number = try std.fmt.parseInt(u64, self.current_number_str.items, 10);
+        std.log.warn("INFO: number = {d}", .{number});
+        return number;
+    }
+    fn setLineByte(self: *Self, byte: u8) !void {
+        if (self.current_index < self.line.items.len) {
+            self.line.items[self.current_index] = byte;
+        } else {
+            try self.line.append(byte);
+        }
+    }
     pub fn handleSymbol(self: *Self, byte: u8) !void {
+        defer self.current_index += 1;
+        _ = try self.getCurrentNumberIfAny();
+
         self.current_symbol_start_idx = self.current_index;
         self.current_token = Token.Symbol;
 
-        try self.line.append(byte);
-        self.current_number_str.clearRetainingCapacity();
+        try self.setLineByte(byte);
     }
     pub fn handleNumber(self: *Self, byte: u8) !void {
+        defer self.current_index += 1;
+
         // building a number, there might be more digits later
         self.current_token = Token.Number;
 
         try self.current_number_str.append(byte);
-        try self.line.append(byte);
+        try self.setLineByte(byte);
     }
     pub fn handleDot(self: *Self, byte: u8) !void {
+        defer self.current_index += 1;
+        _ = try self.getCurrentNumberIfAny();
+
         self.current_token = Token.Break;
 
-        self.current_number_str.clearRetainingCapacity();
-        try self.line.append(byte);
+        try self.setLineByte(byte);
     }
     pub fn handleEndOfLine(self: *Self) !void {
-        self.current_token = Token.Break;
+        _ = try self.getCurrentNumberIfAny();
 
-        self.current_number_str.clearRetainingCapacity();
-        self.line.clearRetainingCapacity(); // TODO: do not clear
+        self.current_index = 0;
+        self.current_token = Token.Break;
     }
     pub fn solve(self: *Self, reader: anytype) !void {
         while (true) {
