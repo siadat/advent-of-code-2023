@@ -36,20 +36,14 @@ test "example" {
 
     const allocator = std.testing.allocator;
 
-    var solver = (try NewSolver(allocator)).init();
+    var solver = Solver{
+        .allocator = allocator,
+    };
+    solver.init();
     defer solver.deinit();
 
     try solver.solve(&reader);
     // assert(solver.total_sum == 4361);
-}
-
-fn NewSolver(allocator: std.mem.Allocator) !*Solver {
-    // NOTE create on the heap, but the caller is responsible for freeing it, which is not nice at all.
-    const solver = try allocator.create(Solver);
-    solver.* = Solver{
-        .allocator = allocator,
-    };
-    return solver;
 }
 
 const Token = enum {
@@ -72,15 +66,13 @@ const Solver = struct {
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
-    fn init(self: *Self) *Self {
+    fn init(self: *Self) void {
         self.line = std.ArrayList(u8).init(self.allocator);
         self.current_number_str = std.ArrayList(u8).init(self.allocator);
-        return self;
     }
     fn deinit(self: *Self) void {
         self.line.deinit();
         self.current_number_str.deinit();
-        self.allocator.destroy(self);
     }
     pub fn handleByte(self: *Self, byte: u8) !void {
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
@@ -180,7 +172,10 @@ pub fn main() !void {
         }
     }
     const allocator = gpa.allocator();
-    var solver = (try NewSolver(allocator)).init();
+    var solver = Solver{
+        .allocator = allocator,
+    };
+    solver.init();
     defer solver.deinit();
 
     try solver.solve(stdin);
