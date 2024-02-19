@@ -36,10 +36,8 @@ test "example" {
 
     const allocator = std.testing.allocator;
 
-    var solver = Solver{
-        .allocator = allocator,
-    };
-    solver.init();
+    var solver = Solver{};
+    solver.init(allocator);
     defer solver.deinit();
 
     try solver.solve(&reader);
@@ -57,7 +55,7 @@ const Solver = struct {
     const Self = @This();
     total_sum: u64 = 0,
 
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = undefined,
     line: std.ArrayList(u8) = undefined,
     current_number_str: std.ArrayList(u8) = undefined,
 
@@ -66,14 +64,17 @@ const Solver = struct {
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
-    fn init(self: *Self) void {
+    fn init(self: *Self, allocator: std.mem.Allocator) void {
+        self.allocator = allocator;
         self.line = std.ArrayList(u8).init(self.allocator);
         self.current_number_str = std.ArrayList(u8).init(self.allocator);
     }
+
     fn deinit(self: *Self) void {
         self.line.deinit();
         self.current_number_str.deinit();
     }
+
     pub fn handleByte(self: *Self, byte: u8) !void {
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
         std.log.warn("INFO: c = {d} '{c}'", .{ byte, byte });
@@ -172,10 +173,8 @@ pub fn main() !void {
         }
     }
     const allocator = gpa.allocator();
-    var solver = Solver{
-        .allocator = allocator,
-    };
-    solver.init();
+    var solver = Solver{};
+    solver.init(allocator);
     defer solver.deinit();
 
     try solver.solve(stdin);
