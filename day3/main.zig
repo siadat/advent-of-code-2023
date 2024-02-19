@@ -38,8 +38,7 @@ test "example" {
 
     var solver = try NewSolver(allocator);
     defer allocator.destroy(solver);
-    defer solver.line.deinit();
-    defer solver.current_number_str.deinit();
+    defer solver.deinit();
 
     try solver.solve(&reader);
     // assert(solver.total_sum == 4361);
@@ -73,6 +72,10 @@ const Solver = struct {
     current_number_start_idx: ?u64 = null,
     current_symbol_start_idx: ?u64 = null,
 
+    pub fn deinit(self: *Self) void {
+        self.line.deinit();
+        self.current_number_str.deinit();
+    }
     pub fn handleByte(self: *Self, byte: u8) !void {
         std.log.warn("INFO: line = \"{s}\"", .{self.line.items});
         std.log.warn("INFO: c = {d} '{c}'", .{ byte, byte });
