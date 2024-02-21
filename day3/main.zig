@@ -258,19 +258,16 @@ const Solver = struct {
             .{ &self.bot_line, &self.top_line },
             .{ &self.bot_line, &self.bot_line },
         };
-        for (combinations, 0..) |comb, ii| {
+        for (combinations) |comb| {
             if (comb[0].symbol_index != null and comb[1].number_end_index != null and comb[1].number_start_index != null) {
                 if (
                 // saw a symbol
                 comb[0].symbol_index.? == self.current_index
                 // this symbol is after this number's end
                 and comb[1].number_end_index.? + 1 == self.current_index) {
-                    try stdout.print("YES1 {d} (combination[{d}])\n", .{ comb[1].current_number, ii });
                     self.total_sum += comb[1].current_number;
                     comb[1].current_number = 0;
 
-                    try stdout.print("INDEX START {d}\n", .{comb[1].number_start_index.?});
-                    try stdout.print("INDEX END   {d}\n", .{comb[1].number_end_index.?});
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, comb[1].name, "bot")) {
@@ -288,12 +285,9 @@ const Solver = struct {
                 and comb[1].symbol_index.? + 1 >= comb[0].number_start_index.?
                 // this number ends after this symbol
                 and comb[1].symbol_index.? <= comb[0].number_end_index.? + 1) {
-                    try stdout.print("YES2 {d} (combination[{d}])\n", .{ comb[0].current_number, ii });
                     self.total_sum += comb[0].current_number;
                     comb[0].current_number = 0;
 
-                    try stdout.print("INDEX START {d}\n", .{comb[0].number_start_index.?});
-                    try stdout.print("INDEX END   {d}\n", .{comb[0].number_end_index.?});
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, comb[0].name, "bot")) {
