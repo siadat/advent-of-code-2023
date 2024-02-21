@@ -19,44 +19,16 @@ test "example_simple" {
             return self.string[self.index];
         }
     };
-    var reader = StringReader{
-        .string =
+    const test_cases = [_]struct { input: []const u8, want: u64 }{
+        .{ .input = 
         \\**********
         \\**********
         \\****5*****
         \\**********
         \\**********
-        ,
-    };
+        , .want = 5 },
 
-    const allocator = std.testing.allocator;
-
-    var solver = Solver.init(allocator);
-    defer solver.deinit();
-
-    try solver.solve(&reader);
-    std.log.warn("total_sum = {d}\n", .{solver.total_sum});
-    assert(solver.total_sum == 5);
-}
-
-test "example" {
-    const StringReader = struct {
-        const Self = @This();
-        string: []const u8,
-        index: u64 = 0,
-        fn readByte(self: *Self) !u8 {
-            if (self.index == std.math.maxInt(u64)) {
-                return error.IndexTooLarge;
-            }
-            if (self.index == self.string.len) {
-                return error.EndOfStream;
-            }
-            defer self.index += 1;
-            return self.string[self.index];
-        }
-    };
-    var reader = StringReader{
-        .string =
+        .{ .input = 
         \\467..114..
         \\...*......
         \\..35..633.
@@ -67,51 +39,82 @@ test "example" {
         \\......755.
         \\...$.*....
         \\.664.598..
-        ,
+        , .want = 4361 },
+
+        .{ .input = 
+        \\..555555..
+        \\..55**55..
+        \\..555555..
+        , .want = 555555 + 555555 + 55 + 55 },
+
+        .{ .input = 
+        \\..5.......
+        \\....*.*...
+        \\..........
+        , .want = 0 },
+
+        .{ .input = 
+        \\...5......
+        \\....*..*..
+        \\..........
+        , .want = 5 },
+
+        .{ .input = 
+        \\..55......
+        \\....*.....
+        \\..........
+        , .want = 55 },
+
+        .{ .input = 
+        \\......55..
+        \\.....*....
+        \\..........
+        , .want = 55 },
+
+        .{ .input = 
+        \\..........
+        \\.....*....
+        \\......55..
+        , .want = 55 },
+
+        .{ .input = 
+        \\..........
+        \\....*.....
+        \\..55......
+        , .want = 55 },
+
+        .{ .input = 
+        \\..........
+        \\....*.....
+        \\....55....
+        , .want = 55 },
+
+        .{ .input = 
+        \\..........
+        \\.......*55
+        \\..........
+        , .want = 55 },
+
+        .{ .input = 
+        \\..........
+        \\55*.......
+        \\..........
+        , .want = 55 },
     };
 
-    const allocator = std.testing.allocator;
-
-    var solver = Solver.init(allocator);
-    defer solver.deinit();
-
-    try solver.solve(&reader);
-    std.log.warn("total_sum = {d}\n", .{solver.total_sum});
-    assert(solver.total_sum == 4361);
+    for (test_cases) |tc| {
+        var reader = StringReader{
+            .string = tc.input,
+        };
+        const allocator = std.testing.allocator;
+        var solver = Solver.init(allocator);
+        defer solver.deinit();
+        try solver.solve(&reader);
+        std.log.warn("total_sum = {d}\n", .{solver.total_sum});
+        assert(solver.total_sum == tc.want);
+    }
 }
-test "example_simple_lol" {
-    const StringReader = struct {
-        const Self = @This();
-        string: []const u8,
-        index: u64 = 0,
-        fn readByte(self: *Self) !u8 {
-            if (self.index == std.math.maxInt(u64)) {
-                return error.IndexTooLarge;
-            }
-            if (self.index == self.string.len) {
-                return error.EndOfStream;
-            }
-            defer self.index += 1;
-            return self.string[self.index];
-        }
-    };
-    var reader = StringReader{
-        .string =
-        \\..55555...
-        \\..55*55...
-        \\..55555...
-        ,
-    };
 
-    const allocator = std.testing.allocator;
-
-    var solver = Solver.init(allocator);
-    defer solver.deinit();
-
-    try solver.solve(&reader);
-    std.log.warn("total_sum = {d}\n", .{solver.total_sum});
-    assert(solver.total_sum == 55555 + 55555 + 55 + 55);
-}
 const Token = enum {
     StartOfFile,
     Number,
@@ -123,8 +126,7 @@ const Solver = struct {
     const Self = @This();
 
     const Line = struct {
-        current_token: Token = Token.StartOfFile,
-
+        name: []const u8,
         current_number: u64 = 0,
         current_number_str: std.ArrayList(u8) = undefined,
         current_number_matched: bool = false,
@@ -134,34 +136,22 @@ const Solver = struct {
         number_end_index: ?u64 = null,
 
         pub fn handleSymbol(self: *Line, current_index: u64) !void {
-            self.current_number = 0;
             self.symbol_index = current_index;
-            self.current_token = Token.Symbol;
         }
         fn handleEndOfLine(self: *Line, current_index: u64) !void {
             try self.handleBreak(current_index);
-            self.current_number = 0;
-            self.symbol_index = null;
-            self.number_start_index = null;
-            self.number_end_index = null;
         }
         fn handleBreak(self: *Line, current_index: u64) !void {
             if (self.current_number_str.items.len == 0) {
                 return;
             }
             self.number_end_index = current_index;
-            //self.number_start_index = null;
             self.current_number = try std.fmt.parseInt(u64, self.current_number_str.items, 10);
             self.current_number_str.clearRetainingCapacity();
         }
         fn handleNumber(self: *Line, byte: u8, current_index: u64) !void {
             self.current_number = 0;
-            // building a number, there might be more digits later
-            self.current_token = Token.Number;
             self.number_start_index = current_index -% self.current_number_str.items.len;
-            //if (self.number_start_index == null) {
-            //    self.number_start_index = current_index;
-            //}
             self.number_end_index = null; // why is this needed?
             try self.current_number_str.append(byte);
         }
@@ -176,8 +166,9 @@ const Solver = struct {
     line: std.ArrayList(u8) = undefined,
     current_index: u64 = 0,
 
-    fn initLine(allocator: std.mem.Allocator) Line {
+    fn initLine(allocator: std.mem.Allocator, name: []const u8) Line {
         return Line{
+            .name = name,
             .current_number_str = std.ArrayList(u8).init(allocator),
         };
     }
@@ -186,8 +177,8 @@ const Solver = struct {
         return Self{
             .allocator = allocator,
             .line = std.ArrayList(u8).init(allocator),
-            .top_line = Solver.initLine(allocator),
-            .bot_line = Solver.initLine(allocator),
+            .top_line = Solver.initLine(allocator, "top"),
+            .bot_line = Solver.initLine(allocator, "bot"),
         };
     }
 
@@ -198,7 +189,9 @@ const Solver = struct {
     }
 
     pub fn handleByte(self: *Self, new_byte: u8) !void {
-        std.log.warn("INFO: line = \"{s}\" got {c}", .{ self.line.items[0..self.current_index], new_byte });
+        if (new_byte == '\n') {
+            try stdout.print("INFO: line = \"{s}\" got {c}", .{ self.line.items[0..self.current_index], new_byte });
+        }
         //std.log.warn("INFO: c = {d} '{c}'", .{ new_byte, new_byte });
 
         const top_byte = blk: {
@@ -220,18 +213,13 @@ const Solver = struct {
             }
         }
 
-        // TODO:
-        // 1. Update indexes and numbers in both lines
-        // 2. We have a number in all these cases:
-        //    Where (X, Y) is (top, top), (top, bot), (bot, top) -- but not (bot, bot)
-        //    - if X_byte is a symbol and Y_line.number_end_index == current_index-1
-        //    - if X_line.number_end_index == current_index and Y_line.symbol >= X_line.number_start_index-1
-        //                                                  and Y_line.symbol <= X_line.number_end_index+1
         var saw_break_top = false;
         var saw_break_bot = false;
         switch (top_byte) {
-            '0'...'9' => try self.top_line.handleNumber(top_byte, self.current_index),
-            '.' => {
+            '0'...'9' => {
+                try self.top_line.handleNumber(top_byte, self.current_index);
+            },
+            '.', 'N' => {
                 try self.top_line.handleBreak(self.current_index);
                 saw_break_top = true;
             },
@@ -247,8 +235,10 @@ const Solver = struct {
             },
         }
         switch (bot_byte) {
-            '0'...'9' => try self.bot_line.handleNumber(bot_byte, self.current_index),
-            '.' => {
+            '0'...'9' => {
+                try self.bot_line.handleNumber(bot_byte, self.current_index);
+            },
+            '.', 'N' => {
                 try self.bot_line.handleBreak(self.current_index);
                 saw_break_bot = true;
             },
@@ -262,37 +252,53 @@ const Solver = struct {
                 saw_break_bot = true;
             },
         }
+
         const combinations = [_]struct { *Line, *Line }{
             .{ &self.top_line, &self.bot_line },
             .{ &self.bot_line, &self.top_line },
             .{ &self.bot_line, &self.bot_line },
             .{ &self.top_line, &self.top_line },
         };
-        for (combinations) |comb| {
+        for (combinations, 0..) |comb, ii| {
             if (comb[0].symbol_index != null and comb[1].number_end_index != null and comb[1].number_start_index != null) {
-                std.log.warn("MAYBE1", .{});
-                if (comb[0].symbol_index.? == self.current_index and comb[1].number_end_index.? + 1 == self.current_index) {
-                    std.log.warn("YES1 {d}", .{comb[1].current_number});
+                if (
+                // saw a symbol
+                comb[0].symbol_index.? == self.current_index
+                // this symbol is after this number's end
+                and comb[1].number_end_index.? + 1 == self.current_index) {
+                    try stdout.print("YES1 {d} (combination[{d}])\n", .{ comb[1].current_number, ii });
                     self.total_sum += comb[1].current_number;
                     comb[1].current_number = 0;
 
-                    std.log.warn("INDEX START {d}", .{comb[1].number_start_index.?});
-                    std.log.warn("INDEX END   {d}", .{comb[1].number_end_index.?});
-                    for (comb[1].number_start_index.?..comb[1].number_end_index.?) |i| {
-                        self.line.items[i] = '.';
+                    try stdout.print("INDEX START {d}\n", .{comb[1].number_start_index.?});
+                    try stdout.print("INDEX END   {d}\n", .{comb[1].number_end_index.?});
+                    // TODO: we don't need to clear the top_line, because we already
+                    // overwrite it with the bot_line
+                    if (std.mem.eql(u8, comb[1].name, "bot")) {
+                        for (comb[1].number_start_index.?..comb[1].number_end_index.?) |i| {
+                            self.line.items[i] = 'N';
+                        }
                     }
                 }
             }
-            if (comb[0].number_end_index != null and comb[0].number_start_index != null and comb[1].symbol_index != null) {
-                std.log.warn("MAYBE2", .{});
-                if (comb[0].number_end_index.? == self.current_index and comb[1].symbol_index.? + 1 >= comb[0].number_start_index.? and comb[1].symbol_index.? <= comb[0].number_end_index.? + 1) {
-                    std.log.warn("YES2 {d}", .{comb[0].current_number});
+            if (comb[1].symbol_index != null and comb[0].number_end_index != null and comb[0].number_start_index != null) {
+                if (
+                // saw an end of a number
+                comb[0].number_end_index.? == self.current_index
+                // this number starts before this symbol
+                and comb[1].symbol_index.? + 1 >= comb[0].number_start_index.?
+                // this number ends after this symbol
+                and comb[1].symbol_index.? <= comb[0].number_end_index.? + 1) {
+                    try stdout.print("YES2 {d} (combination[{d}])\n", .{ comb[0].current_number, ii });
                     self.total_sum += comb[0].current_number;
                     comb[0].current_number = 0;
-                    std.log.warn("INDEX START {d}", .{comb[0].number_start_index.?});
-                    std.log.warn("INDEX END   {d}", .{comb[0].number_end_index.?});
-                    for (comb[0].number_start_index.?..comb[0].number_end_index.?) |i| {
-                        self.line.items[i] = '.';
+
+                    try stdout.print("INDEX START {d}\n", .{comb[0].number_start_index.?});
+                    try stdout.print("INDEX END   {d}\n", .{comb[0].number_end_index.?});
+                    if (std.mem.eql(u8, comb[0].name, "bot")) {
+                        for (comb[0].number_start_index.?..comb[0].number_end_index.?) |i| {
+                            self.line.items[i] = 'N';
+                        }
                     }
                 }
             }
@@ -313,13 +319,6 @@ const Solver = struct {
         }
     }
     pub fn handleEndOfLine(self: *Self) !void {
-        // try self.top_line.handleBreak(self.current_index);
-        // try self.bot_line.handleBreak(self.current_index);
-
-        // // self.line.clearRetainingCapacity();
-        // self.top_line.current_token = Token.Break;
-        // self.bot_line.current_token = Token.Break;
-
         try self.top_line.handleEndOfLine(self.current_index);
         try self.bot_line.handleEndOfLine(self.current_index);
     }
@@ -372,4 +371,5 @@ pub fn main() !void {
 
     try solver.solve(reader);
     std.log.warn("total_sum = {d}\n", .{solver.total_sum});
+    assert(solver.total_sum == 520019);
 }
