@@ -257,7 +257,6 @@ const Solver = struct {
             .{ &self.top_line, &self.bot_line },
             .{ &self.bot_line, &self.top_line },
             .{ &self.bot_line, &self.bot_line },
-            .{ &self.top_line, &self.top_line },
         };
         for (combinations, 0..) |comb, ii| {
             if (comb[0].symbol_index != null and comb[1].number_end_index != null and comb[1].number_start_index != null) {
@@ -272,7 +271,7 @@ const Solver = struct {
 
                     try stdout.print("INDEX START {d}\n", .{comb[1].number_start_index.?});
                     try stdout.print("INDEX END   {d}\n", .{comb[1].number_end_index.?});
-                    // TODO: we don't need to clear the top_line, because we already
+                    // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, comb[1].name, "bot")) {
                         for (comb[1].number_start_index.?..comb[1].number_end_index.?) |i| {
@@ -295,6 +294,8 @@ const Solver = struct {
 
                     try stdout.print("INDEX START {d}\n", .{comb[0].number_start_index.?});
                     try stdout.print("INDEX END   {d}\n", .{comb[0].number_end_index.?});
+                    // We don't need to clear the top_line, because we already
+                    // overwrite it with the bot_line
                     if (std.mem.eql(u8, comb[0].name, "bot")) {
                         for (comb[0].number_start_index.?..comb[0].number_end_index.?) |i| {
                             self.line.items[i] = 'N';
