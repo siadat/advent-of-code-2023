@@ -134,6 +134,7 @@ const Solver = struct {
         symbol_index: ?u64 = null,
         number_start_index: ?u64 = null,
         number_end_index: ?u64 = null,
+        break_seen: bool = false,
 
         pub fn handleSymbol(self: *Line, current_index: u64) !void {
             self.symbol_index = current_index;
@@ -141,7 +142,13 @@ const Solver = struct {
         fn handleEndOfLine(self: *Line, current_index: u64) !void {
             try self.handleBreak(current_index);
         }
+        fn onAfterByte(self: *Line) void {
+            if (self.break_seen) {
+                self.number_start_index = null;
+            }
+        }
         fn handleBreak(self: *Line, current_index: u64) !void {
+            self.break_seen = true;
             if (self.current_number_str.items.len == 0) {
                 return;
             }
@@ -213,25 +220,21 @@ const Solver = struct {
             }
         }
 
-        var saw_break_top = false;
-        var saw_break_bot = false;
+        self.top_line.break_seen = false;
+        self.bot_line.break_seen = false;
         switch (top_byte) {
             '0'...'9' => {
                 try self.top_line.handleNumber(top_byte, self.current_index);
             },
             '.', 'N' => {
                 try self.top_line.handleBreak(self.current_index);
-                saw_break_top = true;
             },
             '\n' => {
                 try self.handleEndOfLine();
-                saw_break_top = true;
             },
             else => {
                 try self.top_line.handleBreak(self.current_index);
                 try self.top_line.handleSymbol(self.current_index);
-
-                saw_break_top = true;
             },
         }
         switch (bot_byte) {
@@ -240,16 +243,13 @@ const Solver = struct {
             },
             '.', 'N' => {
                 try self.bot_line.handleBreak(self.current_index);
-                saw_break_bot = true;
             },
             '\n' => {
                 try self.handleEndOfLine();
-                saw_break_bot = true;
             },
             else => {
                 try self.bot_line.handleBreak(self.current_index);
                 try self.bot_line.handleSymbol(self.current_index);
-                saw_break_bot = true;
             },
         }
 
@@ -298,12 +298,8 @@ const Solver = struct {
                 }
             }
         }
-        if (saw_break_top) {
-            self.top_line.number_start_index = null;
-        }
-        if (saw_break_bot) {
-            self.bot_line.number_start_index = null;
-        }
+        self.top_line.onAfterByte();
+        self.bot_line.onAfterByte();
     }
 
     fn setLineByte(self: *Self, byte: u8) !void {
