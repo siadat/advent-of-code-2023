@@ -142,6 +142,9 @@ const Solver = struct {
         fn handleEndOfLine(self: *Line, current_index: u64) !void {
             try self.handleBreak(current_index);
         }
+        fn onBeforeByte(self: *Line) void {
+            self.break_seen = false;
+        }
         fn onAfterByte(self: *Line) void {
             if (self.break_seen) {
                 self.number_start_index = null;
@@ -220,8 +223,9 @@ const Solver = struct {
             }
         }
 
-        self.top_line.break_seen = false;
-        self.bot_line.break_seen = false;
+        self.top_line.onBeforeByte();
+        self.bot_line.onBeforeByte();
+
         switch (top_byte) {
             '0'...'9' => {
                 try self.top_line.handleNumber(top_byte, self.current_index);
