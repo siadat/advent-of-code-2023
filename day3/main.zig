@@ -157,6 +157,7 @@ const Solver = struct {
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, other.name, "bot")) {
                         for (other.number_start_index.?..other.number_end_index.?) |i| {
+                            // clear number to avoid double counting
                             line.items[i] = 'N';
                         }
                     }
@@ -183,6 +184,7 @@ const Solver = struct {
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, self.name, "bot")) {
                         for (self.number_start_index.?..self.number_end_index.?) |i| {
+                            // clear number to avoid double counting
                             line.items[i] = 'N';
                         }
                     }
@@ -317,7 +319,11 @@ const Solver = struct {
             .{ &self.bot_line, &self.bot_line },
         };
         for (combinations) |comb| {
-            self.total_sum += try comb[0].matchWith(comb[1], self.current_index, self.line);
+            self.total_sum += try comb[0].matchWith(
+                comb[1],
+                self.current_index,
+                self.line,
+            );
         }
 
         self.top_line.onAfterByte();
