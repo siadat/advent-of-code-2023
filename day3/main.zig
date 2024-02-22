@@ -136,9 +136,12 @@ const Solver = struct {
         current_number_str: std.ArrayList(u8) = undefined,
         current_number_matched: bool = false,
 
+        // these indexes are used to match numbers with symbols
         symbol_index: ?u64 = null,
         number_start_index: ?u64 = null,
         number_end_index: ?u64 = null,
+
+        // this is used to make sure indexes are reset in the beginning of the line
         starting_new_line: bool = true,
 
         fn matchWith(self: *Line, other: *Line, current_index: u64, line: std.ArrayList(u8)) !u64 {
