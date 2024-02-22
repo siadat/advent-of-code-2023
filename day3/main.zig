@@ -201,6 +201,23 @@ const Solver = struct {
         fn onBeforeByte(self: *Line) void {
             self.break_seen = false;
         }
+        fn onByte(self: *Line, byte: u8, current_index: u64) !void {
+            switch (byte) {
+                '0'...'9' => {
+                    try self.handleNumber(byte, current_index);
+                },
+                '.', 'N' => {
+                    try self.handleBreak(current_index);
+                },
+                '\n' => {
+                    try self.handleEndOfLine(current_index);
+                },
+                else => {
+                    try self.handleBreak(current_index);
+                    try self.handleSymbol(current_index);
+                },
+            }
+        }
         fn onAfterByte(self: *Line) void {
             if (self.break_seen) {
                 self.number_start_index = null;
@@ -282,36 +299,8 @@ const Solver = struct {
         self.top_line.onBeforeByte();
         self.bot_line.onBeforeByte();
 
-        switch (top_byte) {
-            '0'...'9' => {
-                try self.top_line.handleNumber(top_byte, self.current_index);
-            },
-            '.', 'N' => {
-                try self.top_line.handleBreak(self.current_index);
-            },
-            '\n' => {
-                try self.handleEndOfLine();
-            },
-            else => {
-                try self.top_line.handleBreak(self.current_index);
-                try self.top_line.handleSymbol(self.current_index);
-            },
-        }
-        switch (bot_byte) {
-            '0'...'9' => {
-                try self.bot_line.handleNumber(bot_byte, self.current_index);
-            },
-            '.', 'N' => {
-                try self.bot_line.handleBreak(self.current_index);
-            },
-            '\n' => {
-                try self.handleEndOfLine();
-            },
-            else => {
-                try self.bot_line.handleBreak(self.current_index);
-                try self.bot_line.handleSymbol(self.current_index);
-            },
-        }
+        try self.top_line.onByte(top_byte, self.current_index);
+        try self.bot_line.onByte(bot_byte, self.current_index);
 
         const combinations = [_]struct { *Line, *Line }{
             .{ &self.top_line, &self.bot_line },
