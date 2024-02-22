@@ -203,16 +203,11 @@ const Solver = struct {
         }
         fn onByte(self: *Line, byte: u8, current_index: u64) !void {
             switch (byte) {
-                '0'...'9' => {
-                    try self.handleNumber(byte, current_index);
-                },
-                '.', 'N' => {
-                    try self.handleBreak(current_index);
-                },
-                '\n' => {
-                    try self.handleEndOfLine(current_index);
-                },
+                '0'...'9' => try self.handleNumber(byte, current_index),
+                '.', 'N' => try self.handleBreak(current_index),
+                '\n' => try self.handleEndOfLine(current_index),
                 else => {
+                    // symbole
                     try self.handleBreak(current_index);
                     try self.handleSymbol(current_index);
                 },
