@@ -136,6 +136,48 @@ const Solver = struct {
         number_end_index: ?u64 = null,
         break_seen: bool = false,
 
+        fn matchWith(self: *Line, other: *Line, current_index: u64, line: std.ArrayList(u8)) !u64 {
+            var sum: u64 = 0;
+            if (self.symbol_index != null and other.number_end_index != null and other.number_start_index != null) {
+                if (
+                // saw a symbol
+                self.symbol_index.? == current_index
+                // this symbol is after this number's end
+                and other.number_end_index.? + 1 == current_index) {
+                    sum += other.current_number;
+                    other.current_number = 0;
+
+                    // We don't need to clear the top_line, because we already
+                    // overwrite it with the bot_line
+                    if (std.mem.eql(u8, other.name, "bot")) {
+                        for (other.number_start_index.?..other.number_end_index.?) |i| {
+                            line.items[i] = 'N';
+                        }
+                    }
+                }
+            }
+            if (other.symbol_index != null and self.number_end_index != null and self.number_start_index != null) {
+                if (
+                // saw an end of a number
+                self.number_end_index.? == current_index
+                // this number starts before this symbol
+                and other.symbol_index.? + 1 >= self.number_start_index.?
+                // this number ends after this symbol
+                and other.symbol_index.? <= self.number_end_index.? + 1) {
+                    sum += self.current_number;
+                    self.current_number = 0;
+
+                    // We don't need to clear the top_line, because we already
+                    // overwrite it with the bot_line
+                    if (std.mem.eql(u8, self.name, "bot")) {
+                        for (self.number_start_index.?..self.number_end_index.?) |i| {
+                            line.items[i] = 'N';
+                        }
+                    }
+                }
+            }
+            return sum;
+        }
         pub fn handleSymbol(self: *Line, current_index: u64) !void {
             self.symbol_index = current_index;
         }
@@ -263,44 +305,7 @@ const Solver = struct {
             .{ &self.bot_line, &self.bot_line },
         };
         for (combinations) |comb| {
-            if (comb[0].symbol_index != null and comb[1].number_end_index != null and comb[1].number_start_index != null) {
-                if (
-                // saw a symbol
-                comb[0].symbol_index.? == self.current_index
-                // this symbol is after this number's end
-                and comb[1].number_end_index.? + 1 == self.current_index) {
-                    self.total_sum += comb[1].current_number;
-                    comb[1].current_number = 0;
-
-                    // We don't need to clear the top_line, because we already
-                    // overwrite it with the bot_line
-                    if (std.mem.eql(u8, comb[1].name, "bot")) {
-                        for (comb[1].number_start_index.?..comb[1].number_end_index.?) |i| {
-                            self.line.items[i] = 'N';
-                        }
-                    }
-                }
-            }
-            if (comb[1].symbol_index != null and comb[0].number_end_index != null and comb[0].number_start_index != null) {
-                if (
-                // saw an end of a number
-                comb[0].number_end_index.? == self.current_index
-                // this number starts before this symbol
-                and comb[1].symbol_index.? + 1 >= comb[0].number_start_index.?
-                // this number ends after this symbol
-                and comb[1].symbol_index.? <= comb[0].number_end_index.? + 1) {
-                    self.total_sum += comb[0].current_number;
-                    comb[0].current_number = 0;
-
-                    // We don't need to clear the top_line, because we already
-                    // overwrite it with the bot_line
-                    if (std.mem.eql(u8, comb[0].name, "bot")) {
-                        for (comb[0].number_start_index.?..comb[0].number_end_index.?) |i| {
-                            self.line.items[i] = 'N';
-                        }
-                    }
-                }
-            }
+            self.total_sum += try comb[0].matchWith(comb[1], self.current_index, self.line);
         }
         self.top_line.onAfterByte();
         self.bot_line.onAfterByte();
