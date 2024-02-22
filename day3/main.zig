@@ -138,7 +138,13 @@ const Solver = struct {
 
         fn matchWith(self: *Line, other: *Line, current_index: u64, line: std.ArrayList(u8)) !u64 {
             var sum: u64 = 0;
-            if (self.symbol_index != null and other.number_end_index != null and other.number_start_index != null) {
+            if (
+            //
+            self.symbol_index != null
+            //
+            and other.number_end_index != null
+            //
+            and other.number_start_index != null) {
                 if (
                 // saw a symbol
                 self.symbol_index.? == current_index
@@ -156,7 +162,13 @@ const Solver = struct {
                     }
                 }
             }
-            if (other.symbol_index != null and self.number_end_index != null and self.number_start_index != null) {
+            if (
+            //
+            other.symbol_index != null
+            //
+            and self.number_end_index != null
+            //
+            and self.number_start_index != null) {
                 if (
                 // saw an end of a number
                 self.number_end_index.? == current_index
@@ -307,6 +319,7 @@ const Solver = struct {
         for (combinations) |comb| {
             self.total_sum += try comb[0].matchWith(comb[1], self.current_index, self.line);
         }
+
         self.top_line.onAfterByte();
         self.bot_line.onAfterByte();
     }
