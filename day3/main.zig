@@ -24,7 +24,7 @@ test "example_simple" {
             return self.string[self.index];
         }
     };
-    const test_cases = [_]struct { input: []const u8, want: u64 }{
+    const test_cases = [_]struct { input: []const u8, want: u64, part: u64 = 1 }{
         .{ .input = 
         \\**********
         \\**********
@@ -105,6 +105,19 @@ test "example_simple" {
         \\55*.......
         \\..........
         , .want = 55 },
+
+        // .{ .input =
+        // \\467..114..
+        // \\...*......
+        // \\..35..633.
+        // \\......#...
+        // \\617*......
+        // \\.....+.58.
+        // \\..592.....
+        // \\......755.
+        // \\...$.*....
+        // \\.664.598..
+        // , .want = 467835, .part = 2 },
     };
 
     for (test_cases) |tc| {
@@ -112,7 +125,7 @@ test "example_simple" {
             .string = tc.input,
         };
         const allocator = std.testing.allocator;
-        var solver = Solver.init(allocator);
+        var solver = Solver.init(allocator, tc.part);
         defer solver.deinit();
         try solver.solve(&reader);
         std.log.warn("total_sum = {d}\n", .{solver.total_sum});
@@ -239,6 +252,7 @@ const Solver = struct {
         }
     };
 
+    part: u64 = 1,
     top_line: Line = undefined,
     bot_line: Line = undefined,
 
@@ -255,9 +269,10 @@ const Solver = struct {
         };
     }
 
-    fn init(allocator: std.mem.Allocator) Self {
+    fn init(allocator: std.mem.Allocator, part: u64) Self {
         return Self{
             .allocator = allocator,
+            .part = part,
             .line = std.ArrayList(u8).init(allocator),
             .top_line = Solver.initLine(allocator, "top"),
             .bot_line = Solver.initLine(allocator, "bot"),
@@ -359,7 +374,7 @@ pub fn main() !void {
         }
     }
     const allocator = gpa.allocator();
-    var solver = Solver.init(allocator);
+    var solver = Solver.init(allocator, 1);
     defer solver.deinit();
 
     var reader = stdin;
