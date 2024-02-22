@@ -291,6 +291,8 @@ const Solver = struct {
 
         try self.top_line.onByte(top_byte, self.current_index);
         try self.bot_line.onByte(bot_byte, self.current_index);
+        defer self.top_line.onAfterByte();
+        defer self.bot_line.onAfterByte();
 
         const combinations = [_]struct { *Line, *Line }{
             .{ &self.top_line, &self.bot_line },
@@ -304,9 +306,6 @@ const Solver = struct {
                 self.line,
             );
         }
-
-        self.top_line.onAfterByte();
-        self.bot_line.onAfterByte();
     }
 
     fn setLineByte(self: *Self, byte: u8) !void {
