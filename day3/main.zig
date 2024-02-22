@@ -3,6 +3,11 @@ const stdin = std.io.getStdIn().reader();
 const stdout = std.io.getStdOut().writer();
 const assert = std.debug.assert;
 
+test "test_range" {
+    const s = "abcd";
+    assert(s[1..2].len == 1);
+}
+
 test "example_simple" {
     const StringReader = struct {
         const Self = @This();
@@ -134,7 +139,7 @@ const Solver = struct {
         symbol_index: ?u64 = null,
         number_start_index: ?u64 = null,
         number_end_index: ?u64 = null,
-        break_seen: bool = false,
+        starting_new_line: bool = true,
 
         fn matchWith(self: *Line, other: *Line, current_index: u64, line: std.ArrayList(u8)) !u64 {
             var sum: u64 = 0;
@@ -149,10 +154,15 @@ const Solver = struct {
                 // saw a symbol
                 self.symbol_index.? == current_index
                 // this symbol is after this number's end
-                and other.number_end_index.? + 1 == current_index) {
+                and other.number_end_index.? == current_index) {
                     sum += other.current_number;
                     other.current_number = 0;
-
+                    try stdout.print("MATCH2 {s} with {s}, start={d} end={d}\n", .{
+                        self.name,
+                        other.name,
+                        other.number_start_index.?,
+                        other.number_end_index.?,
+                    });
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, other.name, "bot")) {
@@ -176,10 +186,16 @@ const Solver = struct {
                 // this number starts before this symbol
                 and other.symbol_index.? + 1 >= self.number_start_index.?
                 // this number ends after this symbol
-                and other.symbol_index.? <= self.number_end_index.? + 1) {
+                and other.symbol_index.? <= self.number_end_index.?) {
                     sum += self.current_number;
                     self.current_number = 0;
 
+                    try stdout.print("MATCH2 {s} with {s}, start={d} end={d}\n", .{
+                        self.name,
+                        other.name,
+                        self.number_start_index.?,
+                        self.number_end_index.?,
+                    });
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, self.name, "bot")) {
@@ -196,28 +212,27 @@ const Solver = struct {
             self.symbol_index = current_index;
         }
         fn handleEndOfLine(self: *Line, current_index: u64) !void {
+            self.starting_new_line = true;
             try self.handleBreak(current_index);
         }
-        fn onByte(self: *Line, byte: u8, current_index: u64) !void {
-            self.break_seen = false;
+        fn updateIndexes(self: *Line, byte: u8, current_index: u64) !void {
+            if (self.starting_new_line) {
+                self.number_start_index = null;
+                self.number_end_index = null;
+                self.starting_new_line = false;
+            }
             switch (byte) {
                 '0'...'9' => try self.handleNumber(byte, current_index),
                 '.', 'N' => try self.handleBreak(current_index),
                 '\n' => try self.handleEndOfLine(current_index),
                 else => {
-                    // symbole
+                    // symbol
                     try self.handleBreak(current_index);
                     try self.handleSymbol(current_index);
                 },
             }
         }
-        fn onAfterByte(self: *Line) void {
-            if (self.break_seen) {
-                self.number_start_index = null;
-            }
-        }
         fn handleBreak(self: *Line, current_index: u64) !void {
-            self.break_seen = true;
             if (self.current_number_str.items.len == 0) {
                 return;
             }
@@ -289,10 +304,8 @@ const Solver = struct {
             }
         }
 
-        try self.top_line.onByte(top_byte, self.current_index);
-        try self.bot_line.onByte(bot_byte, self.current_index);
-        defer self.top_line.onAfterByte();
-        defer self.bot_line.onAfterByte();
+        try self.top_line.updateIndexes(top_byte, self.current_index);
+        try self.bot_line.updateIndexes(bot_byte, self.current_index);
 
         const combinations = [_]struct { *Line, *Line }{
             .{ &self.top_line, &self.bot_line },
