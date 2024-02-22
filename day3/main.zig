@@ -157,12 +157,6 @@ const Solver = struct {
                 and other.number_end_index.? == current_index) {
                     sum += other.current_number;
                     other.current_number = 0;
-                    try stdout.print("MATCH2 {s} with {s}, start={d} end={d}\n", .{
-                        self.name,
-                        other.name,
-                        other.number_start_index.?,
-                        other.number_end_index.?,
-                    });
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, other.name, "bot")) {
@@ -189,13 +183,6 @@ const Solver = struct {
                 and other.symbol_index.? <= self.number_end_index.?) {
                     sum += self.current_number;
                     self.current_number = 0;
-
-                    try stdout.print("MATCH2 {s} with {s}, start={d} end={d}\n", .{
-                        self.name,
-                        other.name,
-                        self.number_start_index.?,
-                        self.number_end_index.?,
-                    });
                     // We don't need to clear the top_line, because we already
                     // overwrite it with the bot_line
                     if (std.mem.eql(u8, self.name, "bot")) {
@@ -218,7 +205,6 @@ const Solver = struct {
         fn updateIndexes(self: *Line, byte: u8, current_index: u64) !void {
             if (self.starting_new_line) {
                 self.number_start_index = null;
-                self.number_end_index = null;
                 self.starting_new_line = false;
             }
             switch (byte) {
@@ -241,9 +227,11 @@ const Solver = struct {
             self.current_number_str.clearRetainingCapacity();
         }
         fn handleNumber(self: *Line, byte: u8, current_index: u64) !void {
-            self.current_number = 0;
+            // this is needed because number could potentially continue and
+            // have more digits:
+            self.number_end_index = null;
+
             self.number_start_index = current_index -% self.current_number_str.items.len;
-            self.number_end_index = null; // why is this needed?
             try self.current_number_str.append(byte);
         }
     };
@@ -283,7 +271,6 @@ const Solver = struct {
         if (new_byte == '\n') {
             try stdout.print("INFO: line = \"{s}\" got {c}", .{ self.line.items[0..self.current_index], new_byte });
         }
-        //std.log.warn("INFO: c = {d} '{c}'", .{ new_byte, new_byte });
 
         const top_byte = blk: {
             if (self.line.items.len <= self.current_index) {
