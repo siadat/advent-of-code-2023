@@ -133,13 +133,6 @@ test "example_simple" {
     }
 }
 
-const Token = enum {
-    StartOfFile,
-    Number,
-    Symbol,
-    Break,
-};
-
 const Solver = struct {
     const Self = @This();
 
